@@ -15,3 +15,18 @@ Bản chụp tại thời điểm đọc được mô tả có 69 phản hồi; 
 | 70 | Shopee | Q3 = 100 lần/30 ngày; ngoại lai theo tiền lệ lọc đã duyệt, chưa chứng minh sai. |
 
 Dòng 66 có nội dung khác dòng 65 và được giữ lại. Không loại phản hồi vì câu mở ngắn, không gặp pain hoặc kết quả mua tích cực. Các số 100 lần có thể là thật do câu hỏi tính cả lần tìm kiếm, không chỉ số đơn. Nên chạy phân tích độ nhạy có và không có các trường hợp ngoại lai; không kết luận gian lận. Chưa xác minh người trả lời ngoài nhóm, danh tính trùng lặp hoặc tính riêng cho phân khúc ốp lưng. Không ghi nhận các câu trả lời mới phát sinh sau bản chụp.
+
+## Xác minh đối tượng khảo sát — CP3
+
+- **Người phụ trách:** Nguyễn Đức Nhật.
+- **Phương pháp thu thập:** Khảo sát trực tuyến thông qua Google Forms.
+- **Kênh phân phối:** Facebook và Gmail.
+- **Đối tượng khảo sát hướng đến:** Người từ 18 đến 25 tuổi, có trải nghiệm mua sắm trên sàn thương mại điện tử và không thuộc nhóm BacTrung.
+- **Số người ngoài nhóm đã xác nhận tại thời điểm chốt CP1:** 81 người, theo ghi nhận của người phụ trách khảo sát.
+- **Tổng số phản hồi trong snapshot phân tích:** 64.
+- **Số phản hồi đáp ứng bộ lọc hành vi:** 42.
+- **Phương pháp xác minh:** Đối chiếu đối tượng được tiếp cận thông qua các kênh phân phối khảo sát và sàng lọc phản hồi dựa trên nền tảng mua sắm, thời điểm mua sắm gần nhất và thời lượng đọc đánh giá sản phẩm.
+
+Khảo sát được thực hiện dưới hình thức ẩn danh, không thu thập tên, email hoặc thông tin nhận dạng cá nhân.
+
+Do đó, số lượng người ngoài nhóm được ghi nhận tại CP1 cần được phân biệt với số phản hồi đáp ứng bộ lọc hành vi. Chưa thể đối chiếu độc lập danh tính, độ tuổi và tính duy nhất của từng người trong 42 phản hồi thuộc tập phân tích chính.
