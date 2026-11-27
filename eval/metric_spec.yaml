@@ -1,30 +1,17 @@
-# Metric spec — "thế nào là tốt", đo bằng gì. Điền ở guide bước 2.4.
-# Ôn lại: ngày 5, ngày 9 · lab ngày 5, lab ngày 9.
-# CHỐT TRƯỚC 19:30 Thứ Sáu 27/11 (CP2), KHÔNG SỬA SAU. Sửa sau CP2 → khối R4 0 điểm (03-rubric).
-#
-# ≥3 metric. Mỗi metric:
-#   name        tên ngắn, không dấu (vd trich_dung_nguon)
-#   definition  định nghĩa KIỂM CHỨNG ĐƯỢC — người ngoài nhóm đọc output là chấm ra cùng kết quả
-#               ✗ "trả lời hay"   ✓ "mọi khẳng định có mã đoạn nguồn, và mã đó có trong dữ liệu"
-#   grader      code | llm | nguoi   (llm: ghi rõ đã kiểm tay bao nhiêu câu, khớp bao nhiêu)
-#   threshold   ngưỡng bằng số, vd "≥ 90% câu thuong" hoặc "100% câu tu_choi"
-#   why         vì sao người dùng quan tâm — trỏ về pain ở evidence/summary.md (từ pain, không từ AI)
-# Kiểm: python run.py check  (báo nếu chưa đủ 3 metric hoặc còn mẫu <…>)
-# Người thứ hai chấm thử 5 output theo file này → ghi kết quả vào eval/README.md mục 3.
-
+# CP2 locked standard; do not change after CP2 submission.
 metrics:
-  - name: "<metric_1>"
-    definition: "<định nghĩa kiểm chứng được>"
-    grader: "<code | llm | nguoi>"
-    threshold: "<ngưỡng bằng số>"
-    why: "<vì sao người dùng quan tâm>"
-  - name: "<metric_2>"
-    definition: "<…>"
-    grader: "<…>"
-    threshold: "<…>"
-    why: "<…>"
-  - name: "<metric_3>"
-    definition: "<…>"
-    grader: "<…>"
-    threshold: "<…>"
-    why: "<…>"
+  - name: dung_listing_bien_the
+    definition: "Tỷ lệ review được phân tích có product_id, phone_model và case_variant khớp chính xác lựa chọn; chấm bằng cách đối chiếu từng review_assessments.review_id với data/reviews.json."
+    grader: code
+    threshold: "100% trên mọi câu có status=ok"
+    why: "Khó khăn về đánh giá không liên quan mẫu/size/phiên bản được 16/42 người trong tập khảo sát chính chọn; một tình huống ốp cụ thể ở evidence/summary.md."
+  - name: truy_vet_dan_chung
+    definition: "Tỷ lệ evidence.review_id tồn tại trong review đã lấy mẫu và evidence.review_text bằng nguyên văn text nguồn tương ứng."
+    grader: code
+    threshold: "100% mọi evidence trong mọi output status=ok"
+    why: "Người mua cần kiểm tra căn cứ cho gợi ý; survey có 28/42 người chọn review ngắn/thiếu thông tin và 28/42 nghi ngờ độ tin cậy."
+  - name: tu_choi_khi_thieu_can_cu
+    definition: "Tỷ lệ URL ngoài fixture, host không hợp lệ, biến thể không khớp hoặc JSON/schema sai được trả error/needs_input và không có recommendation."
+    grader: code
+    threshold: "100% các input không hợp lệ/không có dữ liệu"
+    why: "Tránh khuyến nghị dựa trên review không áp dụng; media chưa rõ là lựa chọn được 20/42 người ghi nhận trong khảo sát."

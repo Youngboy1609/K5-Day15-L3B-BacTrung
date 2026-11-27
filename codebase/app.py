@@ -5,6 +5,7 @@ Nhóm thay bằng giao diện của mình (web, bot…) nhưng giữ `python run
 để chạy bản chạy thử (sửa hàm run_app() trong run.py nếu cần).
 """
 import os
+import json
 import sys
 
 for _stream in (sys.stdout, sys.stderr, sys.stdin):
@@ -34,7 +35,9 @@ def main() -> int:
         print("Không nạp được codebase/ — lỗi ở %s: %s: %s" % (_where(e), type(e).__name__, e))
         print("Sửa lỗi rồi chạy lại. Cách nối model: docs/connect-model.md")
         return 1
-    print("Bản chạy thử — gõ đầu vào rồi Enter. Thoát: Ctrl+C (hoặc Enter 2 lần với dòng trống).")
+    print("BacTrung CP2 mock — nhập JSON gồm product_url, phone_model, case_variant.")
+    print('Ví dụ: {"product_url":"https://shopee.vn/fixture-bactrung-case-clear-001","phone_model":"iPhone 15 Pro","case_variant":"Ốp trong suốt viền đen"}')
+    print("Link trên là fixture cục bộ, không gọi Shopee. Thoát: Ctrl+C.")
     blank = 0
     while True:
         try:
@@ -60,7 +63,12 @@ def main() -> int:
             print("[lỗi] %s: %s" % (type(e).__name__, e))
             continue
         s, _ = tracing.end()
-        print(result.get("output", "") if isinstance(result, dict) else result)
+        output = result.get("output", "") if isinstance(result, dict) else result
+        try:
+            output = json.dumps(json.loads(output), ensure_ascii=False, indent=2)
+        except (TypeError, ValueError):
+            pass
+        print(output)
         print("   (model: %s · gọi model %d lần · công cụ %d lần · token vào %d / ra %d)"
               % (", ".join(s["models"]) or "—", s["model_calls"], s["tool_calls"], s["tokens_in"], s["tokens_out"]))
 
