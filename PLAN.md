@@ -13,26 +13,26 @@
 | Thành viên | Đầu việc | File phụ trách |
 |---|---|---|
 | **Hồ Trọng Nghĩa — đội trưởng** | Canvas, spec, UI/UX, tích hợp, slide và nộp bài | `TEAMS.md`, `canvas.md`, `spec.md`, `codebase/app.py`, `demo-slides.pdf` |
-| **Nguyễn Đức Nhật** | Khảo sát, tổng hợp bằng chứng và mô phỏng chi phí | `evidence/`, `cost/personas.yaml`, `cost/cost-estimate.md` |
-| **Nguyễn Cao Minh** | Dữ liệu review mẫu, công cụ tra cứu/lấy mẫu, benchmark và hai lượt đánh giá | `data/`, `codebase/tools.py`, `eval/benchmark.csv`, `eval/metric_spec.yaml`, `eval/README.md`, `eval/report.md` |
+| **Nguyễn Đức Nhật** | Khảo sát, tổng hợp bằng chứng; dữ liệu review mẫu và công cụ tra cứu/lấy mẫu | `evidence/`, `data/`, `codebase/tools.py` |
+| **Nguyễn Cao Minh** | Mô phỏng chi phí, benchmark và hai lượt đánh giá | `cost/personas.yaml`, `cost/cost-estimate.md`, `eval/benchmark.csv`, `eval/metric_spec.yaml`, `eval/README.md`, `eval/report.md` |
 | **Phạm Đăng Quang** | Workflow, tích hợp model đa phương thức, tổng hợp khuyến nghị và quay demo | `codebase/agent.py`, `codebase/ai.py`, video CP3 và video dự phòng |
 
-Mỗi người làm trên nhánh riêng, chỉ sửa file mình phụ trách; Nghĩa gom vào `main`. **Minh ghi các lượt eval chính thức, Nhật ghi các lượt mô phỏng chính thức.** Dùng lệnh và khung sẵn có trong `run.py`, `codebase/tracing.py`, `eval/run_eval.py` và `cost/simulate.py`.
+Mỗi người làm trên nhánh riêng, chỉ sửa file mình phụ trách; Nghĩa gom vào `main`. **Minh ghi các lượt eval và mô phỏng chi phí chính thức.** Dùng lệnh và khung sẵn có trong `run.py`, `codebase/tracing.py`, `eval/run_eval.py` và `cost/simulate.py`.
 
 ## Việc phải xong theo mốc
 
 ### CP1 — 17:00 Thứ Sáu 27/11
 
 - [ ] **Nghĩa:** Nộp Form 1 trước **16:30**. Điền Canvas 7 dòng và phân công; mô tả vấn đề trong 1–2 câu không dùng chữ AI, tách khỏi câu lát cắt. Phác một màn hình: nhập link → chọn biến thể → phân tích → xem kết quả. Kiểm repo public bằng tab ẩn danh rồi nộp Form 2 → CP1.
-- [ ] **Nhật:** Ghi giả thuyết và phát form cho người ngoài nhóm từng đọc review Shopee khi mua/cân nhắc mua bất kỳ sản phẩm nào trong 3 tháng gần nhất. Hỏi về lần gần nhất: ngành hàng, cách đọc/lọc review, thời gian, điều còn phân vân và quyết định sau đó. Có câu mở lấy ví dụ/trích dẫn thật; không dẫn người trả lời về ốp điện thoại.
-- [ ] **Minh:** Tạo vài review mẫu theo định dạng bên dưới: đúng mẫu, sai mẫu, ảnh bao bì và không có ảnh. Chọn hai link demo.
+- [ ] **Nhật:** Ghi giả thuyết và phát form cho người ngoài nhóm từng đọc review Shopee khi mua/cân nhắc mua bất kỳ sản phẩm nào trong 3 tháng gần nhất. Hỏi về lần gần nhất: ngành hàng, cách đọc/lọc review, thời gian, điều còn phân vân và quyết định sau đó. Có câu mở lấy ví dụ/trích dẫn thật; không dẫn người trả lời về ốp điện thoại. Tạo vài review mẫu theo định dạng bên dưới: đúng mẫu, sai mẫu, ảnh bao bì và không có ảnh; chọn hai link demo.
+- [ ] **Minh:** Chuẩn bị khung persona và mô phỏng chi phí theo quy mô dùng thử.
 - [ ] **Quang:** Dựng luồng bằng dữ liệu giả nhỏ và phản hồi mock. Bắt đầu từ JSON mẫu trong file này, không cần chờ khảo sát hoặc toàn bộ dữ liệu review.
 
 ### CP2 — 19:30 Thứ Sáu 27/11
 
 - [ ] **Nghĩa:** Dựng UI mock; cập nhật Canvas với số liệu bước đầu và ghi thay đổi so với CP1. Viết sơ đồ `spec.md` §4, nêu rõ dữ liệu đầu vào, phần AI quyết định và chỗ chặn rủi ro. Chốt **chuẩn đạt bằng số** trong §7 rồi nộp CP2.
-- [ ] **Nhật:** Đăng tiến độ khảo sát, số phản hồi hợp lệ theo ngành hàng và một trích dẫn ẩn danh nếu đã có. Chuyển các tình huống cụ thể theo mã phản hồi cho Minh; đánh dấu rõ ngành hàng để không nhầm dữ liệu khảo sát chung với fixture ốp điện thoại.
-- [ ] **Minh:** Hoàn thiện bộ review mẫu, tra đúng sản phẩm/biến thể, lấy mẫu theo sao và ghi `data/DATA_CARD.md`. Soạn **≥10 câu thử**, **≥3 metric đo được** và cách chấm. Cùng Nghĩa chấm độc lập 5 đầu ra, cần khớp **≥4/5** theo rubric; ghi kết quả vào `eval/README.md`.
+- [ ] **Nhật:** Đăng tiến độ khảo sát, số phản hồi hợp lệ theo ngành hàng và một trích dẫn ẩn danh nếu đã có. Chuyển các tình huống cụ thể theo mã phản hồi cho Minh; đánh dấu rõ ngành hàng để không nhầm dữ liệu khảo sát chung với fixture ốp điện thoại. Hoàn thiện bộ review mẫu, tra đúng sản phẩm/biến thể, lấy mẫu theo sao và ghi `data/DATA_CARD.md`.
+- [ ] **Minh:** Soạn **≥10 câu thử**, **≥3 metric đo được** và cách chấm. Cùng Nghĩa chấm độc lập 5 đầu ra, cần khớp **≥4/5** theo rubric; ghi kết quả vào `eval/README.md`. Chuẩn bị persona và ước tính chi phí sơ bộ.
 - [ ] **Quang:** Cho `python run.py` chạy hết luồng với AI giả: nhập link và biến thể → tra review mẫu → chấm giả → trả khuyến nghị có dẫn chứng. Xử lý riêng link ngoài bộ demo và trường hợp thiếu căn cứ.
 
 Khóa `spec.md` §7 và `eval/metric_spec.yaml` sau CP2. **Chuẩn đạt của bài** là tỷ lệ câu thử qua và điều kiện bắt buộc; **ngưỡng khuyến nghị mua** là quy tắc của app. Ghi riêng hai phần.
@@ -48,10 +48,10 @@ Khóa `spec.md` §7 và `eval/metric_spec.yaml` sau CP2. **Chuẩn đạt của 
 
 - [ ] **Quang:** Chọn **một nhóm lỗi quan trọng** từ lượt 1 và sửa. Chuẩn bị demo trực tiếp và video demo dự phòng mở được bằng tab ẩn danh.
 - [ ] **Minh:** Khi bản sửa sẵn sàng, chạy và chấm lượt 2 trên **cùng bộ câu thử**, giữ nguyên chuẩn và đáp án; cập nhật báo cáo so sánh lượt 1 → lượt 2, phân tích ít nhất 3 lỗi cụ thể của lượt 1.
-- [ ] **Nhật:** Chuẩn bị trước ≥3 persona, bảng giá ≥2 mức model và 3 kịch bản thấp/cơ sở/cao. Khi Minh đã chấm lượt 2, chạy `python run.py simulate --rate-from eval/run-2.csv` với **≥50 phiên**, seed cố định. Báo chi phí mỗi task thành công cùng model, chi phí theo tháng và so sánh với impact; ghi rõ nguồn hoặc chỗ tự ước tính.
+- [ ] **Minh:** Chuẩn bị trước ≥3 persona, bảng giá ≥2 mức model và 3 kịch bản thấp/cơ sở/cao. Khi lượt 2 đã được chấm, chạy `python run.py simulate --rate-from eval/run-2.csv` với **≥50 phiên**, seed cố định. Báo chi phí mỗi task thành công cùng model, chi phí theo tháng và so sánh với impact; ghi rõ nguồn hoặc chỗ tự ước tính.
 - [ ] **Nghĩa:** Ráp slide trong lúc chờ số; cập nhật kết quả và chi phí khi có. Đặt `demo-slides.pdf` ở gốc repo, hoàn tất `spec.md` đến §9, kiểm link video dự phòng và nộp CP4. Slide có trang đánh giá và chi phí; demo chuẩn bị cả ca thường và ca khó.
 
-**Thứ tự bàn giao CP4:** Quang đưa bản sửa → Minh chạy và chấm lượt 2 → Nhật tính chi phí → Nghĩa chốt số trên slide. Đưa bản bàn giao trước hạn nộp **20–30 phút** để Nghĩa kiểm file, link và form.
+**Thứ tự bàn giao CP4:** Quang đưa bản sửa → Minh chạy và chấm lượt 2, sau đó mô phỏng chi phí → Nghĩa chốt số trên slide. Đưa bản bàn giao trước hạn nộp **20–30 phút** để Nghĩa kiểm file, link và form.
 
 **Khóa repo — 23:59 Thứ Bảy:** Nghĩa tổng hợp `spec.md` §10 và `docs/ai-usage.md`; cả bốn người thêm reflection riêng. Không nộp thêm form. Không sửa chuẩn đạt, bộ câu thử, số bằng chứng hoặc kết quả đã chạy sau CP4; nếu chạy thêm thì ghi lượt mới.
 
@@ -94,7 +94,7 @@ Một review trong dữ liệu demo:
 
 Các đường dẫn tính từ `data/`. Review không có media dùng `"media": []`. Link demo ánh xạ đến sản phẩm đã chuẩn bị; link ngoài bộ hiện **“Chưa có dữ liệu”**. Chỉ review đúng biến thể mới vào mẫu chấm.
 
-1. **Minh:** Lấy tối đa **12 review** theo nhóm sao với seed cố định. Lưu số review từng nhóm trong tập đúng biến thể trước khi lấy mẫu để Quang dùng tỷ lệ gốc khi tổng hợp, kể cả khi lấy dư review ít sao.
+1. **Nhật:** Chuẩn bị dữ liệu review mẫu; lấy tối đa **12 review** theo nhóm sao với seed cố định. Lưu số review từng nhóm trong tập đúng biến thể trước khi lấy mẫu để Quang dùng tỷ lệ gốc khi tổng hợp, kể cả khi lấy dư review ít sao.
 2. **Quang:** Model chấm hai trục: hướng nhận xét về sản phẩm và độ mạnh của bằng chứng. Ảnh hoặc khung hình chỉ tăng trọng số khi đúng biến thể và hỗ trợ nhận xét. Review có chữ cụ thể vẫn có giá trị khi thiếu media. Ca video chỉ quay bao bì không được cộng trọng số cho nhận xét về độ vừa; không đủ căn cứ từ khung hình thì nói rõ.
 3. **Quang:** Code tổng hợp thành **Đáng mua / Cần xem xét thêm / Không đáng mua**. Tập có review nhưng quá ít bằng chứng hữu ích hoặc có mâu thuẫn quan trọng thì chọn **Cần xem xét thêm** và nêu lý do. Kết quả chỉ dẫn mã review đã phân tích, có mốc thời gian nếu dùng khung hình video, và không gắn nhãn “review thật” dựa vào media.
 4. **Nghĩa:** UI giữ hợp đồng `answer(text) -> {"output": str}`. Hiển thị lần lượt **Khuyến nghị → Độ phủ (đã phân tích/tổng review đúng biến thể) → Dẫn chứng → Lời khuyên**; có trạng thái đang phân tích, link ngoài bộ demo và thiếu căn cứ. Cho xem video cục bộ tại mục dẫn chứng nếu có, ghi rõ AI chỉ đọc các khung hình được chọn.
