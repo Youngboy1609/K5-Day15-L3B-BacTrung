@@ -8,9 +8,9 @@
 
 - **Persona** (`cost/personas.yaml`): ≥3 kiểu — tỉ lệ, số phiên / người / tháng, số lượt hỏi / phiên. Nguồn: __
 - **Số người dùng thật** 3 kịch bản: thấp __ · cơ sở __ · cao __. Nguồn: __
-- **Giá** ≥2 mức model (từ `further-reading/model-prices.md` của repo đề, có link + ngày xem): __ · __
+- **Giá** (USD / 1 triệu token, Standard, đầu vào không cache): GPT-4o **2,50 vào / 10,00 ra** · Gemini 3.1 Flash-Lite **0,25 vào / 1,50 ra** (mức tham chiếu). Nguồn và ngày xem ghi trong `cost/personas.yaml`.
 - **Tỉ lệ đạt** dùng để tính: __/__ (__%) — lượt `run-__` (lượt 2)
-- Đo token trên model __, tính giá model __ và __
+- Model demo dùng để đo token: `gpt-4o`. Tính chi phí chính theo giá GPT-4o và so sánh với giá Gemini 3.1 Flash-Lite trên cùng số token đo được.
 
 ## 2. Kết quả mô phỏng
 
