@@ -11,10 +11,10 @@
 
 | STT | Họ và tên | Mã học viên | Vai trò | Phần việc chính |
 |---|---|---|---|---|
-| 1 | Hồ Trọng Nghĩa | 2A202603729 | Đội trưởng | ____ |
-| 2 | Nguyễn Đức Nhật | 2A202603812 | Thành viên | ____ |
-| 3 | Nguyễn Cao Minh | 2A202604099 | Thành viên | ____ |
-| 4 | Phạm Đăng Quang | 2A202603760 | Thành viên | ____ |
+| 1 | Hồ Trọng Nghĩa | 2A202603729 | Đội trưởng | Canvas, spec, UI/UX và tích hợp repo |
+| 2 | Nguyễn Đức Nhật | 2A202603812 | Thành viên | Khảo sát người mua ốp lưng và tổng hợp bằng chứng |
+| 3 | Nguyễn Cao Minh | 2A202604099 | Thành viên | Dữ liệu review mẫu, bộ câu thử và đánh giá |
+| 4 | Phạm Đăng Quang | 2A202603760 | Thành viên | Workflow, tích hợp model và bản chạy thử AI |
 
 **Quy tắc điền**
 - **Lớp:** `L3A` hoặc `L3B`. **Track:** một chữ `A` (EdTech), `B` (Y tế), `C` (Du lịch), `D` (Thương mại điện tử), `E` (Tài chính) hoặc `F` (Làn khác). **Link repo:** link GitHub công khai của nhóm.
