@@ -1,6 +1,3 @@
-> Đây là khung repo nộp bài. Điền mọi chỗ `____`, giữ nguyên tên các mục. **Mục 0 xoá đi sau khi tạo repo xong.**
-> Giờ, mốc, luật, rubric: xem `README.md`, `02-guide.md`, `03-rubric.md` trong repo đề (bộ đề BTC phát).
-
 # BacTrung — Trợ lý đọc review Shopee
 
 **Thành viên, lớp, track:** xem [TEAMS.md](TEAMS.md). **Điền TEAMS.md đúng format**: khi chấm và đánh giá, BTC quét file này để ghép điểm cho từng người.
@@ -11,31 +8,7 @@
 
 Nhóm khảo sát người mua đã đọc review trên Shopee khi mua hoặc cân nhắc mua sản phẩm thuộc **bất kỳ ngành hàng nào**; kết quả sẽ được phân tích theo ngành hàng, không mặc định các nhóm có cùng một vấn đề.
 
-Bản demo giới hạn ở **ốp điện thoại**: người dùng chọn dòng máy và biến thể, app phân tích review cùng ảnh/khung hình video có liên quan trong bộ dữ liệu cục bộ, rồi đưa khuyến nghị kèm dẫn chứng để người mua tự quyết định. Demo này chưa chứng minh app áp dụng được cho các ngành hàng khác.
-
----
-
-## 0. Tạo repo nhóm từ khung này *(guide bước 1.0 — xoá mục này khi xong)*
-
-**Hai luật:** repo **mới, công khai (Public)** · tên `K5-Day15-<lớp>-<tên nhóm>`, vd `K5-Day15-L3A-StudyPulse` (tên nhóm viết liền, không dấu). Chép **nội dung bên trong** `starter-repo/` — `README.md`, `run.py` phải nằm ngay ở trang đầu repo.
-
-**(a) Không cần terminal — làm trên web GitHub**
-1. **New repository** → tên theo mẫu → **Public** → không tick thêm gì → tạo.
-2. Trên máy mở thư mục `starter-repo/`, **bật hiện file ẩn** (Mac Finder: `Cmd + Shift + .` · Windows: View → Show → Hidden items) để thấy `.gitignore`, `.env.example`.
-3. Trên repo vừa tạo: **Add file → Upload files** → **kéo thả** tất cả file và thư mục bên trong `starter-repo/` → **Commit changes**. Kéo thả mới giữ được thư mục con; lỗi vì nhiều file quá thì tải từng thư mục.
-4. Kiểm: có `.gitignore` chưa (hay thiếu nhất). Thiếu thì **Add file → Create new file**, tên `.gitignore`, dán nội dung từ máy.
-5. Từ giờ sửa file ngay trên web (biểu tượng bút chì → Commit). Phần code vẫn cần **một** người chạy được trên máy: trước mỗi lượt chạy tải **Code → Download ZIP** về thư mục mới (mang `.env` sang), chạy xong chỉ upload file kết quả và file vừa sửa; trong lúc đang chạy không ai sửa `eval/benchmark.csv` trên web.
-
-**(b) Dùng git**
-```bash
-git clone https://github.com/<tai-khoan>/K5-Day15-L3A-TenNhom.git
-cd K5-Day15-L3A-TenNhom
-cp -R ../duong-dan-toi/starter-repo/. .      # Windows PowerShell: Copy-Item -Recurse -Force ..\duong-dan-toi\starter-repo\* .
-git status                                   # không được có .env, data-btc/
-git add -A && git commit -m "Khung repo từ starter-repo" && git push
-```
-
-**Xong khi:** mở link repo bằng **cửa sổ ẩn danh** thấy được file (link nộp CP1) · đã mời thành viên (Settings → Collaborators) · đã điền `TEAMS.md` và `python run.py check` không báo gì ở phần "Kiểm TEAMS.md".
+Bản demo giới hạn ở **ốp điện thoại**: người dùng chọn dòng máy và biến thể, app phân tích review trong bộ dữ liệu cục bộ, rồi đưa khuyến nghị kèm dẫn chứng để người mua tự quyết định. CP2 fixture hiện chỉ có chữ; chưa xử lý ảnh/video. Demo này chưa chứng minh app áp dụng được cho các ngành hàng khác.
 
 ---
 
@@ -49,7 +22,7 @@ git add -A && git commit -m "Khung repo từ starter-repo" && git push
 | Chấm cột `pass` theo metric spec | Chạy cả bộ một lệnh, có run ID, model, token từng câu (`run.py eval`) · tính % đạt (`run.py score`) |
 | Persona, số người dùng thật, giá model (`cost/personas.yaml`) | Sinh ~50 phiên, chạy thật qua bản chạy thử, tính chi phí / phiên, / task thành công, / tháng 3 kịch bản (`run.py simulate`) |
 
-*Ví dụ track A (ví dụ cỡ, không phải lời giải):* nhóm viết công cụ `search_lesson` tra bài pre-class đã đánh mã đoạn, luồng "tra đoạn → model trả lời kèm mã đoạn, không có thì nói không có", metric "mọi khẳng định có mã đoạn đúng", persona "ôn dồn trước kiểm tra". Khung chạy 25 câu thử ra `run-1.csv`, nhóm chấm `pass`, `score` in % đạt; `simulate` chạy 50 phiên ra chi phí / task thành công cho hai model.
+**Luồng CP2:** JSON input → tra fixture cục bộ theo listing/dòng máy/biến thể → lấy mẫu tối đa 12 review theo sao (seed 42) → judge mock rule-based → kiểm mã review và tổng hợp khuyến nghị. URL ngoài fixture không được truy cập mạng. Khảo sát pain bao quát nhiều ngành hàng; demo và đánh giá kỹ thuật chỉ đại diện cho lát cắt ốp điện thoại. Pain và ngưỡng đánh giá hiện vẫn là bản nháp, chờ nhóm xác nhận sau khảo sát.
 
 ## Chạy trong 3 phút
 
@@ -68,21 +41,25 @@ Gõ `dir` (Windows) hoặc `ls` (macOS / Linux): thấy `run.py` và `README.md`
 | Việc | Windows (PowerShell) | macOS / Linux |
 |---|---|---|
 | Kiểm Python | `python --version` (không được thì `py --version`) | `python3 --version` |
-| Chạy bản chạy thử (chế độ giả, chưa gọi model) | `python run.py` | `python3 run.py` |
+| Chạy bản chạy thử (mở giao diện web local, không gọi Shopee) | `python run.py` | `python3 run.py` |
+| Chạy test workflow | `python -m unittest discover -s tests -v` | `python3 -m unittest discover -s tests -v` |
 | Kiểm bộ câu thử | `python run.py check` | `python3 run.py check` |
 | Tạo file `.env` để nối model | `copy .env.example .env` | `cp .env.example .env` |
 
 - Windows: gõ `python` mà mở Microsoft Store hoặc báo không có lệnh → dùng `py`. Chưa có Python: cài từ python.org, **tick "Add python.exe to PATH"**, mở lại PowerShell.
 - macOS: báo `command not found: python` là bình thường → dùng `python3`.
-- `python run.py` in ra "[câu trả lời giả — chưa nối model] …" là khung chạy đúng. Nối model thật: [docs/connect-model.md](docs/connect-model.md).
+- CP2 dùng heuristic mock, token 0; chạy được không đồng nghĩa đã tích hợp AI thật. Nối model thật ở CP3 theo [docs/connect-model.md](docs/connect-model.md).
 
 Trong README này lệnh viết là `python …`; máy nhóm cần `python3` hay `py` thì gõ thay.
+
+Giao diện web chạy ở `http://127.0.0.1:8765/`. Dùng nút **Dùng mẫu demo** hoặc dán link fixture, chọn dòng máy/biến thể rồi bấm **Phân tích review**. Không cần cài thêm thư viện; server chỉ nhận dữ liệu cục bộ.
 
 ## Lệnh
 
 | Lệnh | Làm gì |
 |---|---|
-| `python run.py` | Chạy bản chạy thử (gõ đầu vào, nhận kết quả, kèm số lần gọi model / token) |
+| `python run.py` | Mở bản chạy thử web local; chọn mẫu và xem khuyến nghị kèm dẫn chứng |
+| `python -m unittest discover -s tests -v` | Chạy test input, lookup fixture, HTTP và browser smoke (browser smoke bỏ qua nếu chưa cài Playwright) |
 | `python run.py check` | Kiểm `eval/benchmark.csv` (6 cột, số câu, `kho` / `tu_choi`, mã `source`, ô trống, dòng mẫu) `eval/metric_spec.yaml` (≥3 metric điền đủ) và `TEAMS.md` (đúng format để BTC quét). Chỉ cảnh báo, không sửa file |
 | `python run.py eval --try` | **Thử nối model:** chạy 3 câu đầu (`--try 5` = 5 câu) → `eval/run-try.csv`. Thấy "Nối model được" là xong. Không tính là một lượt |
 | `python run.py eval` | Chạy cả bộ qua `codebase/agent.py` → `eval/run-1.csv` (lần sau `run-2.csv`…) + `traces/run-1.jsonl`. Mỗi dòng có run ID, model, số lần gọi model / công cụ, token. Model còn giả → chỉ ghi `run-mock.csv`; mọi câu lỗi → `run-error.csv`; Ctrl+C → `run-stopped.csv` — đều **không** được đánh số |
@@ -106,7 +83,11 @@ Nhóm dùng stack khác (Node, Streamlit, notebook…): sửa hàm `run_app()` t
 | `codebase/tools.py` | Công cụ của bài toán, mỗi công cụ một hàm có `@tool` | 2.2, 3.2 |
 | `codebase/ai.py` | `call_model(system, user)` — chỗ duy nhất gọi model. Chưa điền `.env` thì chạy **chế độ giả** | 3.3 |
 
-- **Trước CP2:** để chế độ giả, công cụ trả dữ liệu giả — `python run.py` đi hết luồng là đủ.
+- **CP2:** `python run.py` mở UI web, dùng review synthetic trong `data/reviews.json` và mock judge. Bộ eval vẫn gửi nguyên ô `input` JSON như ví dụ:
+  ```json
+  {"product_url":"https://shopee.vn/fixture-bactrung-case-clear-001","phone_model":"iPhone 15 Pro","case_variant":"Ốp trong suốt viền đen"}
+  ```
+  Đây là URL fixture, không phải listing Shopee thật. URL không có trong fixture không được truy cập mạng; ảnh/video chưa được phân tích.
 - **Trước CP3:** nối model thật theo [docs/connect-model.md](docs/connect-model.md), `eval --try` thấy token > 0 rồi mới `eval`.
 - Bộ chạy gửi **nguyên ô `input`** của câu thử vào `answer(text)`. Dữ liệu nền (bài học, thông báo, lịch…) để trong `data/`, đọc qua công cụ.
 
@@ -114,8 +95,9 @@ Nhóm dùng stack khác (Node, Streamlit, notebook…): sửa hàm `run_app()` t
 
 | Thành phần | Thật / Giả | Ghi chú |
 |---|---|---|
-| Lời gọi AI ở quyết định trung tâm | **Thật** (bắt buộc từ CP3) | Model: ____ |
-|  |  |  |
+| Lời gọi AI ở quyết định trung tâm | **Giả ở CP2** | Heuristic mock, model `fake`, token 0; chưa được tính là kết quả AI thật |
+| Dữ liệu review | **Giả lập (`synthetic`)** | 14 review trên 2 listing local; không phải review Shopee hay bằng chứng pain |
+| Phân tích media | **Chưa có** | Fixture không có ảnh/MP4; output phải nói rõ media chưa được đánh giá |
 
 ## Dùng AI vào việc gì
 

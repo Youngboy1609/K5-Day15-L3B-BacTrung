@@ -1,0 +1,145 @@
+{
+  "version": "cp2-fixture-1",
+  "products": [
+    {
+      "product_id": "fixture-case-clear-001",
+      "product_url": "https://shopee.vn/fixture-bactrung-case-clear-001",
+      "title": "[Dữ liệu giả lập] Ốp lưng trong suốt viền đen",
+      "reviews": [
+        {
+          "review_id": "R001",
+          "phone_model": "iPhone 15 Pro",
+          "case_variant": "Ốp trong suốt viền đen",
+          "stars": 5,
+          "text": "Ốp vừa khít iPhone 15 Pro, phần viền camera cắt chuẩn và không che ống kính.",
+          "media": [],
+          "synthetic": true
+        },
+        {
+          "review_id": "R002",
+          "phone_model": "iPhone 15 Pro",
+          "case_variant": "Ốp trong suốt viền đen",
+          "stars": 5,
+          "text": "Nút bấm nhạy, viền ôm máy chắc. Mình dùng hai tuần chưa thấy lỏng.",
+          "media": [],
+          "synthetic": true
+        },
+        {
+          "review_id": "R003",
+          "phone_model": "iPhone 15 Pro",
+          "case_variant": "Ốp trong suốt viền đen",
+          "stars": 4,
+          "text": "Ốp đẹp và vừa máy, viền camera không bị cấn. Giao đúng mẫu đã chọn.",
+          "media": [],
+          "synthetic": true
+        },
+        {
+          "review_id": "R004",
+          "phone_model": "iPhone 15 Pro",
+          "case_variant": "Ốp trong suốt viền đen",
+          "stars": 2,
+          "text": "Ốp cấn sát mép camera trên iPhone 15 Pro, để máy xuống bàn bị kênh.",
+          "media": [],
+          "synthetic": true
+        },
+        {
+          "review_id": "R005",
+          "phone_model": "iPhone 15 Pro",
+          "case_variant": "Ốp trong suốt viền đen",
+          "stars": 1,
+          "text": "Dùng khoảng một tuần thì viền trong bị ố vàng, dù phần lưng vẫn ổn.",
+          "media": [],
+          "synthetic": true
+        },
+        {
+          "review_id": "R006",
+          "phone_model": "iPhone 15 Pro",
+          "case_variant": "Ốp trong suốt viền đen",
+          "stars": 2,
+          "text": "Ốp hơi lỏng ở cạnh phải, cầm ngang có cảm giác máy xê dịch.",
+          "media": [],
+          "synthetic": true
+        },
+        {
+          "review_id": "R007",
+          "phone_model": "iPhone 15",
+          "case_variant": "Ốp trong suốt viền đen",
+          "stars": 5,
+          "text": "Ốp vừa khít, phần camera cắt đúng cho iPhone 15.",
+          "media": [],
+          "synthetic": true
+        },
+        {
+          "review_id": "R008",
+          "phone_model": "iPhone 15 Pro",
+          "case_variant": "Ốp trong suốt viền xanh",
+          "stars": 5,
+          "text": "Màu xanh đẹp, nút bấm nhạy và viền ôm máy.",
+          "media": [],
+          "synthetic": true
+        },
+        {
+          "review_id": "R009",
+          "phone_model": "iPhone 15 Pro",
+          "case_variant": "Ốp trong suốt viền đen",
+          "stars": 4,
+          "text": "Lưng trong nhìn được màu máy, các góc ôm vừa. Chưa thử làm rơi.",
+          "media": [],
+          "synthetic": true
+        },
+        {
+          "review_id": "R010",
+          "phone_model": "iPhone 15 Pro",
+          "case_variant": "Ốp trong suốt viền đen",
+          "stars": 3,
+          "text": "Mẫu đúng nhưng cạnh hơi cứng khi bấm nút âm lượng.",
+          "media": [],
+          "synthetic": true
+        }
+      ]
+    },
+    {
+      "product_id": "fixture-case-rugged-002",
+      "product_url": "https://shopee.vn/fixture-bactrung-case-rugged-002",
+      "title": "[Dữ liệu giả lập] Ốp lưng chống sốc viền nhám",
+      "reviews": [
+        {
+          "review_id": "R101",
+          "phone_model": "Samsung Galaxy S24",
+          "case_variant": "Ốp chống sốc viền nhám",
+          "stars": 5,
+          "text": "Ốp ôm máy Galaxy S24, các nút bấm vẫn nhạy và viền nhám dễ cầm.",
+          "media": [],
+          "synthetic": true
+        },
+        {
+          "review_id": "R102",
+          "phone_model": "Samsung Galaxy S24",
+          "case_variant": "Ốp chống sốc viền nhám",
+          "stars": 4,
+          "text": "Góc ốp dày, máy chưa trầy sau lần rơi nhẹ. Không rõ chịu được va đập mạnh không.",
+          "media": [],
+          "synthetic": true
+        },
+        {
+          "review_id": "R103",
+          "phone_model": "Samsung Galaxy S24",
+          "case_variant": "Ốp chống sốc viền nhám",
+          "stars": 2,
+          "text": "Ốp cấn cạnh màn hình khi vuốt từ mép, viền hơi cứng.",
+          "media": [],
+          "synthetic": true
+        },
+        {
+          "review_id": "R104",
+          "phone_model": "Samsung Galaxy S24",
+          "case_variant": "Ốp trong suốt",
+          "stars": 5,
+          "text": "Màu trong đẹp, mẫu này lắp vừa máy.",
+          "media": [],
+          "synthetic": true
+        }
+      ]
+    }
+  ]
+}

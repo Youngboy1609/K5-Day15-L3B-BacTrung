@@ -5,26 +5,26 @@
 
 ## 1. Dataset → xử lý
 
-Dataset nào, xử lý gì: tóm 2–3 dòng từ `data/DATA_CARD.md`.
+`data/reviews.json` có 14 review synthetic trên hai listing fixture, lọc theo đúng listing + dòng máy + biến thể rồi lấy mẫu tối đa 12 theo nhóm sao, seed 42. Không phải review Shopee thật hoặc bằng chứng pain; chưa có media. Chi tiết/giới hạn ở `data/DATA_CARD.md`.
 
 ## 2. Bộ câu thử dựng ra sao
 
-- `eval/benchmark.csv`: __ câu (thuong __ · kho __ · tu_choi __, trong đó __ câu tấn công)
-- Nguồn (`python run.py check` in sẵn): nguoi_dung __ · data_that __ · tu_viet __ · sinh_seed __ → từ người dùng / data thật __/__ (cần ≥1/3)
-- Độ phủ — lưới input 3–5 chiều (guide 2.4 bước 5): __
-- Câu `kho` trỏ về 4 lớp chỗ khó (`spec.md` §5): lớp 1: __ · lớp 2: __ · lớp 3: __ · lớp 4: __
+- `eval/benchmark.csv`: 10 câu (thuong 2 · kho 6 · tu_choi 2, trong đó 2 câu tấn công)
+- Nguồn (checker): nguoi_dung 0 · data_that 0 · tu_viet 10 · sinh_seed 0 → từ người dùng / data thật 0/10 (**chưa đạt ≥1/3; chờ tình huống khảo sát thật**)
+- Độ phủ — lưới input: listing có/không trong fixture · dòng máy · biến thể · JSON hợp lệ/không hợp lệ · phản ánh lỗi cụ thể · chỉ dẫn/hostname tấn công.
+- Câu `kho` trỏ về 4 lớp chỗ khó (`spec.md` §5): lớp 1: B03 · lớp 2: B04/B08 · lớp 3: B05/B06 · lớp 4: B02/B07/B09.
 
 ## 3. Metric và cách chấm
 
 | Metric (`eval/metric_spec.yaml`) | Cách chấm | Ngưỡng |
 |---|---|---|
-| | code / llm / nguoi | |
-| | | |
-| | | |
+| `dung_bien_the` | code | 100% review được trích dẫn |
+| `dan_chung_ton_tai` | code | 100% mã và trích dẫn đúng nguồn |
+| `tu_choi_khi_thieu_can_cu` | code | 100% link/biến thể không hợp lệ không khuyến nghị |
 
-- **Người thứ hai chấm thử:** __ (không phải người viết spec) chấm độc lập 5 output → khớp __/5 *(cần ≥4/5; lệch thì viết lại định nghĩa)*
+- **Người thứ hai chấm thử:** Chưa thực hiện; cần người không viết spec chấm độc lập 5 output và ghi khớp x/5 (cần ≥4/5). Không tự điền kết quả.
 - LLM chấm (nếu có): đã kiểm tay __ câu, khớp __/__
-- **Chuẩn "đạt"** (chép nguyên từ `spec.md` §7, chốt trước 19:30 Thứ Sáu 27/11): "__"
+- **Chuẩn "đạt"** (bản nháp, chưa khóa): ≥80% câu thử qua, đồng thời 100% câu link/biến thể không hợp lệ không đưa khuyến nghị và 100% dẫn chứng khớp review/biến thể. Chờ nhóm duyệt sau khi có khảo sát và chấm thử.
 
 ## 4. Lệnh
 

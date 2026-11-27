@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <link rel="icon" href="data:,">
+  <title>BacTrung — Đọc review đúng mẫu ốp</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="masthead shell">
+    <span class="wordmark">BacTrung</span>
+    <span class="demo-badge">Dữ liệu demo giả lập</span>
+  </header>
+
+  <main class="shell">
+    <section class="intro" aria-labelledby="page-title">
+      <h1 id="page-title">Đọc review đúng mẫu ốp</h1>
+      <p>Chọn dòng máy và biến thể. Kết quả chỉ dùng review của đúng mẫu, kèm dẫn chứng để bạn tự quyết định.</p>
+    </section>
+
+    <div class="workbench">
+      <form id="analyze-form" class="controls" novalidate>
+        <div class="field">
+          <label for="product-url">Link Shopee</label>
+          <input id="product-url" name="product_url" type="url" list="listing-options" autocomplete="off" required aria-describedby="url-help url-error">
+          <datalist id="listing-options"></datalist>
+          <p id="url-help" class="field-help">Dùng link fixture cục bộ; demo không truy cập Shopee.</p>
+          <p id="url-error" class="field-error" hidden></p>
+        </div>
+
+        <button id="demo-button" class="button button-secondary" type="button">Dùng mẫu demo</button>
+
+        <div class="field">
+          <label for="phone-model">Dòng máy</label>
+          <select id="phone-model" name="phone_model" required disabled aria-describedby="model-help model-error">
+            <option value="">Chọn dòng máy</option>
+          </select>
+          <p id="model-help" class="field-help">Chọn link demo để mở danh sách dòng máy.</p>
+          <p id="model-error" class="field-error" hidden></p>
+        </div>
+
+        <div class="field">
+          <label for="case-variant">Biến thể ốp</label>
+          <select id="case-variant" name="case_variant" required disabled aria-describedby="variant-help variant-error">
+            <option value="">Chọn biến thể</option>
+          </select>
+          <p id="variant-help" class="field-help">Review của biến thể khác không được dùng.</p>
+          <p id="variant-error" class="field-error" hidden></p>
+        </div>
+
+        <div class="actions">
+          <button id="analyze-button" class="button button-primary" type="submit">Phân tích review</button>
+        </div>
+        <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
+      </form>
+
+      <section id="result" class="result" tabindex="-1" aria-labelledby="result-title" hidden>
+        <div class="result-head">
+          <p class="section-label">Bản đọc review</p>
+          <h2 id="result-title">Kết quả phân tích</h2>
+          <p id="result-context" class="result-context"></p>
+        </div>
+        <p id="recommendation" class="recommendation"></p>
+        <p id="coverage" class="coverage"><span id="coverage-number" class="coverage-number">— / —</span><span id="coverage-label" class="coverage-label"></span></p>
+        <p id="coverage-note" class="coverage-note"></p>
+        <div class="evidence-section">
+          <h3>Dẫn chứng đáng lưu ý</h3>
+          <div id="evidence-list" class="evidence-list"></div>
+        </div>
+        <div class="advice-section">
+          <h3>Nên kiểm tra gì trước khi mua</h3>
+          <p id="advice"></p>
+        </div>
+        <details class="details">
+          <summary>Chi tiết phân tích</summary>
+          <div id="details-content"></div>
+        </details>
+      </section>
+
+      <section id="feedback" class="feedback" aria-labelledby="feedback-title" hidden>
+        <p class="section-label">Chưa có kết quả</p>
+        <h2 id="feedback-title"></h2>
+        <p id="feedback-message"></p>
+        <p id="feedback-code" class="feedback-code"></p>
+        <button id="retry-button" class="button button-secondary" type="button" hidden>Thử lại</button>
+      </section>
+    </div>
+  </main>
+
+  <footer class="shell footer">
+    <p>BacTrung · AI gợi ý, người mua quyết · Không đặt hàng</p>
+  </footer>
+</body>
+</html>
