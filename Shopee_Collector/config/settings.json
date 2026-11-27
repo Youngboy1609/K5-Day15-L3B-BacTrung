@@ -1,0 +1,30 @@
+{
+  "seeds": [
+    "https://shopee.vn/product/1698873565/54208152799",
+    "https://shopee.vn/product/92473740/45713058538",
+    "https://shopee.vn/product/1385065291/24538448643"
+  ],
+  "keywords": [],
+  "max_pages_per_run": 60,
+  "max_products_per_run": 30,
+  "max_queue_size": 2000,
+  "listing_pages_per_seed": 2,
+  "review_pages_per_product": 2,
+  "scroll_steps": 6,
+  "max_idle_scrolls": 2,
+  "delay_ms": 5000,
+  "settle_ms": 1200,
+  "prefer_listings": false,
+  "skip_detail_when_complete": false,
+  "detail_required_fields": ["name", "price", "rating_average"],
+  "collect_reviews": true,
+  "max_attempts": 2,
+  "block_resource_types": [],
+  "network_price_divisor": 100000,
+  "browser_channel": "",
+  "selectors": {
+    "listing_next": ".shopee-page-controller .shopee-icon-button--right",
+    "review_container": ".product-ratings",
+    "review_next": ".product-ratings .shopee-page-controller .shopee-icon-button--right"
+  }
+}
