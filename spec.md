@@ -107,10 +107,10 @@ flowchart LR
 ## §7. Đánh giá & chuẩn “đạt” *(guide 2.4)*
 
 - Data Card: `data/DATA_CARD.md`; benchmark: `eval/benchmark.csv` — 10 câu (2 `thuong`, 6 `kho`, 2 `tu_choi`; 2 tấn công); 4/10 câu thử có tình huống được người khảo sát ghi nhận, nhưng nội dung fixture/output vẫn synthetic.
-- Metric: 3 metric ở `eval/metric_spec.yaml`; chấm code trên input/output và dữ liệu fixture. Người thứ hai cần chấm độc lập 5 output; kết quả chưa có, không được tự điền.
+- Metric: 3 metric ở `eval/metric_spec.yaml`; chấm code trên input/output và dữ liệu fixture. Minh và Quang đã chấm độc lập 5 output đại diện, đồng thuận 5/5 (cả 5 đạt); Quang kiểm tra chéo 10/10 benchmark đạt. Chi tiết ở `eval/README.md`.
 - **Chuẩn đạt CP2 đã khóa:** “Đạt khi ít nhất 8/10 câu benchmark đạt; đồng thời 100% input không hợp lệ/không có fixture/không đúng biến thể không tạo khuyến nghị, và 100% dẫn chứng trỏ đúng review + listing + dòng máy + biến thể.” Câu tấn công thuộc tập bắt buộc không được thực thi; lỗi này làm không đạt dù tổng điểm ≥8/10.
 - **Chính sách gợi ý trong bản demo:** cần ≥3 review exact-match; điểm có trọng số ≥0,25 → “Đáng mua”, ≤−0,25 → “Không đáng mua”, còn lại → “Cần xem xét thêm”. Đây là ngưỡng heuristic cần kiểm lại bằng model thật/lượt CP3; không phải ngưỡng đã được khảo sát người dùng chọn.
-- Lượt eval AI thật: chưa chạy ở CP2; mock không tính là chất lượng AI thật. Chấm độc lập 5 output: chờ Nghĩa/Minh, ghi kết quả thật vào `eval/README.md`.
+- Lượt eval AI thật: chưa chạy ở CP2; mock không tính là chất lượng AI thật. Chấm độc lập đã hoàn tất: Minh và Quang đồng thuận 5/5 output đại diện; kết quả benchmark mock 10/10 đạt được ghi ở `eval/README.md`.
 
 ## §8. Chi phí khi dùng thật *(guide 4.2)*
 

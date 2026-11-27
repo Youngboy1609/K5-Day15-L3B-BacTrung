@@ -32,7 +32,7 @@ Mỗi người làm trên nhánh riêng, chỉ sửa file mình phụ trách; Ng
 
 - [ ] **Nghĩa:** Dựng UI mock; cập nhật Canvas với số liệu bước đầu và ghi thay đổi so với CP1. Viết sơ đồ `spec.md` §4, nêu rõ dữ liệu đầu vào, phần AI quyết định và chỗ chặn rủi ro. Chốt **chuẩn đạt bằng số** trong §7 rồi nộp CP2.
 - [ ] **Nhật:** Đăng tiến độ khảo sát, số phản hồi hợp lệ theo ngành hàng và một trích dẫn ẩn danh nếu đã có. Chuyển các tình huống cụ thể theo mã phản hồi cho Minh; đánh dấu rõ ngành hàng để không nhầm dữ liệu khảo sát chung với fixture ốp điện thoại. Hoàn thiện bộ review mẫu, tra đúng sản phẩm/biến thể, lấy mẫu theo sao và ghi `data/DATA_CARD.md`.
-- [ ] **Minh:** Soạn **≥10 câu thử**, **≥3 metric đo được** và cách chấm. Cùng Nghĩa chấm độc lập 5 đầu ra, cần khớp **≥4/5** theo rubric; ghi kết quả vào `eval/README.md`. Chuẩn bị persona và ước tính chi phí sơ bộ.
+- [ ] **Minh:** Soạn **≥10 câu thử**, **≥3 metric đo được** và cách chấm. Cùng Quang chấm độc lập 5 đầu ra; hai người đồng thuận **5/5**, vượt ngưỡng **≥4/5** theo rubric; ghi kết quả vào `eval/README.md`. Chuẩn bị persona và ước tính chi phí sơ bộ.
 - [ ] **Quang:** Cho `python run.py` chạy hết luồng với AI giả: nhập link và biến thể → tra review mẫu → chấm giả → trả khuyến nghị có dẫn chứng. Xử lý riêng link ngoài bộ demo và trường hợp thiếu căn cứ.
 
 Khóa `spec.md` §7 và `eval/metric_spec.yaml` sau CP2. **Chuẩn đạt của bài** là tỷ lệ câu thử qua và điều kiện bắt buộc; **ngưỡng khuyến nghị mua** là quy tắc của app. Ghi riêng hai phần.
