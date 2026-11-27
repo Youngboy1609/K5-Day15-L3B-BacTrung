@@ -1,27 +1,52 @@
-"""Nối model — chỗ DUY NHẤT trong bản chạy thử gọi model AI. NHÓM VIẾT phần gọi model thật.
-
-Hợp đồng (giữ nguyên để khung đo được token):
-    call_model(system: str, user: str) -> dict với 4 khoá
-        "text":       str   chữ model trả về
-        "model":      str   tên model đã gọi (để tra giá ở bảng giá model)
-        "tokens_in":  int   số token vào, lấy từ trường usage trong phản hồi API — KHÔNG ước lượng
-        "tokens_out": int   số token ra, gồm cả token suy luận / suy nghĩ nếu API tính riêng
-    @model_call (từ tracing.py) tự ghi mỗi lần gọi vào trace; agent.py gọi call_model bao nhiêu lần
-    cũng được, khung tự cộng token.
-    Lỗi gọi model (hết lượt, sai key, mất mạng): cứ để exception bay ra — khung ghi lỗi vào cột error.
-
-Chế độ giả (mặc định khi .env chưa có MODEL_PROVIDER, hoặc MODEL_PROVIDER=fake):
-    trả một câu giả cố định, model "fake", token 0 — để luồng chạy hết từ trước CP2 (guide bước 3.2).
-    Lượt `run.py eval` / `run.py simulate` chạy bằng model giả KHÔNG được tính.
-
-Nối model thật: điền .env (chép từ .env.example), rồi viết nhánh gọi API ở dưới theo docs/connect-model.md
-(có ví dụ OpenAI, Claude, model chạy trên máy, và cách nối nhà cung cấp khác). Không dán API key vào file này.
-"""
+"""Gọi model OpenAI/OpenRouter hoặc chạy giả lập, với token từ usage của API."""
+import base64
+import json
 import os
+import urllib.error
+import urllib.request
+from dataclasses import dataclass, field
+from pathlib import Path
 
 from tracing import model_call
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = Path(ROOT) / "data"
+OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+CHAT_URLS = {"openai": OPENAI_URL, "openrouter": "https://openrouter.ai/api/v1/chat/completions"}
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
+MAX_IMAGE_PAYLOAD = 32 * 1024 * 1024
+
+
+@dataclass(frozen=True)
+class ImageInput:
+    ref: str
+    data_url: str = field(repr=False)
+
+
+def load_image(ref: str, relative_path: str) -> ImageInput | None:
+    """Đọc một ảnh demo cục bộ để đính kèm vào yêu cầu model."""
+    try:
+        if Path(relative_path).anchor:
+            return None
+        path = (DATA_DIR / relative_path).resolve()
+        if not path.is_relative_to(DATA_DIR.resolve()) or not path.is_file():
+            return None
+        with path.open("rb") as image:
+            content = image.read(MAX_IMAGE_BYTES + 1)
+    except (OSError, TypeError, ValueError, RuntimeError):
+        return None
+    if len(content) > MAX_IMAGE_BYTES:
+        return None
+    if content.startswith(b"\xff\xd8\xff"):
+        mime = "image/jpeg"
+    elif content.startswith(b"\x89PNG\r\n\x1a\n"):
+        mime = "image/png"
+    elif content.startswith(b"RIFF") and content[8:12] == b"WEBP":
+        mime = "image/webp"
+    else:
+        return None
+    encoded = base64.b64encode(content).decode("ascii")
+    return ImageInput(ref, f"data:{mime};base64,{encoded}")
 
 
 def load_env(path=os.path.join(ROOT, ".env")):
@@ -44,13 +69,54 @@ API_KEY = (os.environ.get("API_KEY") or "").strip()
 
 
 @model_call
-def call_model(system: str, user: str) -> dict:
+def call_model(system: str, user: str, *, images=(), schema=None, mock_text=None) -> dict:
     if MODEL_PROVIDER == "fake":
-        last = (user.strip().splitlines() or [""])[-1]
-        return {"text": "[câu trả lời giả — chưa nối model] " + last[:60], "model": "fake", "tokens_in": 0, "tokens_out": 0}
+        if mock_text is None:
+            last = (user.strip().splitlines() or [""])[-1]
+            mock_text = "[câu trả lời giả — chưa nối model] " + last[:60]
+        return {"text": mock_text, "model": "fake", "tokens_in": 0, "tokens_out": 0}
+    url = CHAT_URLS.get(MODEL_PROVIDER)
+    if url is None:
+        raise NotImplementedError("MODEL_PROVIDER hỗ trợ: fake, openai, openrouter.")
+    if not MODEL_NAME or not API_KEY:
+        raise RuntimeError(f"Điền MODEL_NAME và API_KEY trong .env để gọi {MODEL_PROVIDER}.")
 
-    # NHÓM VIẾT: gọi model thật ở đây (theo MODEL_PROVIDER, MODEL_NAME, API_KEY) rồi trả đúng 4 khoá.
-    # Ví dụ chép được cho từng nhà cung cấp: docs/connect-model.md mục 2.
-    raise NotImplementedError(
-        "chưa viết phần gọi model thật cho MODEL_PROVIDER=%s trong codebase/ai.py — xem docs/connect-model.md"
-        % MODEL_PROVIDER)
+    content = user
+    if images:
+        content = [{"type": "text", "text": user}]
+        for image in images:
+            content.extend([
+                {"type": "text", "text": f"Ảnh hoặc khung hình có mã {image.ref}:"},
+                {"type": "image_url", "image_url": {"url": image.data_url}},
+            ])
+    messages = [{"role": "system", "content": system}] if system else []
+    messages.append({"role": "user", "content": content})
+    payload = {"model": MODEL_NAME, "messages": messages}
+    if schema is not None:
+        payload["response_format"] = {
+            "type": "json_schema",
+            "json_schema": {"name": "review_analysis", "strict": True, "schema": schema},
+        }
+        if MODEL_PROVIDER == "openrouter":
+            payload["provider"] = {"require_parameters": True}
+    request = urllib.request.Request(
+        url, data=json.dumps(payload, ensure_ascii=False).encode("utf-8"), method="POST",
+        headers={"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            data = json.load(response)
+    except urllib.error.HTTPError as error:
+        raise RuntimeError(f"{MODEL_PROVIDER} trả HTTP {error.code}.") from None
+    except (urllib.error.URLError, TimeoutError):
+        raise RuntimeError(f"Không kết nối được với {MODEL_PROVIDER} trong thời gian chờ.") from None
+
+    choice = data["choices"][0]
+    message = choice["message"]
+    usage = data["usage"]
+    return {
+        "text": (message.get("content") or "") if choice["finish_reason"] == "stop" else "",
+        "model": data.get("model") or MODEL_NAME,
+        "tokens_in": usage["prompt_tokens"],
+        "tokens_out": usage["completion_tokens"],
+    }
