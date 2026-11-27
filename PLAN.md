@@ -1,10 +1,12 @@
 # Kế hoạch Hackathon — BacTrung · L3B · Track D
 
-**Bài toán:** Khi chọn mua ốp lưng trên Shopee, người mua mất thời gian đọc review và khó biết nhận xét nào áp dụng cho đúng dòng máy và mẫu ốp mình định mua. Đây là giả thuyết nhóm sẽ kiểm qua khảo sát.
+**Bài toán nghiên cứu:** Người mua trên Shopee có thể mất thời gian đọc review mà vẫn khó tổng hợp thông tin hữu ích để quyết định có nên mua sản phẩm. Đây là giả thuyết rộng, cần kiểm bằng khảo sát người mua ở nhiều ngành hàng.
 
-**Lát cắt:** Người mua dán link Shopee và chọn biến thể ốp; AI đánh giá review nào cung cấp bằng chứng cho biến thể đó; app trả khuyến nghị mua kèm dẫn chứng và một lời khuyên cụ thể.
+**Lát cắt sản phẩm:** Người mua dán link Shopee và chọn dòng máy cùng biến thể ốp; AI đánh giá review và media nào có liên quan, hữu ích cho biến thể đó; app trả khuyến nghị kèm dẫn chứng và lời khuyên để người mua tự quyết định.
 
-**Phạm vi demo:** Hai link Shopee, gồm một ca thông thường và một ca dễ lẫn biến thể. App tra dữ liệu cục bộ đã chuẩn bị, không gọi Shopee lúc demo. Từ CP3, model thật phân tích chữ, ảnh và các khung hình trích sẵn từ MP4. Phần audio và tải file từ người dùng nằm ngoài phạm vi.
+**Đối tượng khảo sát:** Người ngoài nhóm đã đọc review trên Shopee khi mua hoặc cân nhắc mua sản phẩm thuộc bất kỳ ngành hàng nào. Ghi nhận ngành hàng của lần gần nhất và phân tích kết quả theo nhóm; không gộp khác biệt ngành hàng thành một kết luận chung nếu dữ liệu không hỗ trợ.
+
+**Phạm vi demo:** Chỉ minh họa trên ốp điện thoại bằng hai link Shopee và dữ liệu review cục bộ đã chuẩn bị; không gọi Shopee lúc demo. Từ CP3, model thật phân tích chữ, ảnh và các khung hình trích sẵn từ MP4. Phần audio, tải video từ người dùng và kết luận rằng sản phẩm thuộc mọi ngành hàng đều được hỗ trợ nằm ngoài phạm vi.
 
 ## Phân công
 
@@ -22,14 +24,14 @@ Mỗi người làm trên nhánh riêng, chỉ sửa file mình phụ trách; Ng
 ### CP1 — 17:00 Thứ Sáu 27/11
 
 - [ ] **Nghĩa:** Nộp Form 1 trước **16:30**. Điền Canvas 7 dòng và phân công; mô tả vấn đề trong 1–2 câu không dùng chữ AI, tách khỏi câu lát cắt. Phác một màn hình: nhập link → chọn biến thể → phân tích → xem kết quả. Kiểm repo public bằng tab ẩn danh rồi nộp Form 2 → CP1.
-- [ ] **Nhật:** Ghi giả thuyết và phát form cho người ngoài nhóm từng cân nhắc hoặc mua ốp trên Shopee. Hỏi về lần gần nhất: đọc gì, mất bao lâu, có gặp review lẫn biến thể không và họ xử lý ra sao. Có câu mở để lấy tình huống và trích dẫn thật.
+- [ ] **Nhật:** Ghi giả thuyết và phát form cho người ngoài nhóm từng đọc review Shopee khi mua/cân nhắc mua bất kỳ sản phẩm nào trong 3 tháng gần nhất. Hỏi về lần gần nhất: ngành hàng, cách đọc/lọc review, thời gian, điều còn phân vân và quyết định sau đó. Có câu mở lấy ví dụ/trích dẫn thật; không dẫn người trả lời về ốp điện thoại.
 - [ ] **Minh:** Tạo vài review mẫu theo định dạng bên dưới: đúng mẫu, sai mẫu, ảnh bao bì và không có ảnh. Chọn hai link demo.
 - [ ] **Quang:** Dựng luồng bằng dữ liệu giả nhỏ và phản hồi mock. Bắt đầu từ JSON mẫu trong file này, không cần chờ khảo sát hoặc toàn bộ dữ liệu review.
 
 ### CP2 — 19:30 Thứ Sáu 27/11
 
 - [ ] **Nghĩa:** Dựng UI mock; cập nhật Canvas với số liệu bước đầu và ghi thay đổi so với CP1. Viết sơ đồ `spec.md` §4, nêu rõ dữ liệu đầu vào, phần AI quyết định và chỗ chặn rủi ro. Chốt **chuẩn đạt bằng số** trong §7 rồi nộp CP2.
-- [ ] **Nhật:** Đăng tiến độ khảo sát, số phản hồi hợp lệ và một trích dẫn ẩn danh nếu đã có. Chuyển dần các tình huống cụ thể theo mã phản hồi để Minh viết câu thử.
+- [ ] **Nhật:** Đăng tiến độ khảo sát, số phản hồi hợp lệ theo ngành hàng và một trích dẫn ẩn danh nếu đã có. Chuyển các tình huống cụ thể theo mã phản hồi cho Minh; đánh dấu rõ ngành hàng để không nhầm dữ liệu khảo sát chung với fixture ốp điện thoại.
 - [ ] **Minh:** Hoàn thiện bộ review mẫu, tra đúng sản phẩm/biến thể, lấy mẫu theo sao và ghi `data/DATA_CARD.md`. Soạn **≥10 câu thử**, **≥3 metric đo được** và cách chấm. Cùng Nghĩa chấm độc lập 5 đầu ra, cần khớp **≥4/5** theo rubric; ghi kết quả vào `eval/README.md`.
 - [ ] **Quang:** Cho `python run.py` chạy hết luồng với AI giả: nhập link và biến thể → tra review mẫu → chấm giả → trả khuyến nghị có dẫn chứng. Xử lý riêng link ngoài bộ demo và trường hợp thiếu căn cứ.
 
@@ -37,8 +39,8 @@ Khóa `spec.md` §7 và `eval/metric_spec.yaml` sau CP2. **Chuẩn đạt của 
 
 ### CP3 — 10:00 Thứ Bảy 28/11
 
-- [ ] **Nhật:** Chốt **≥20 phản hồi hợp lệ** và **≥5 trích dẫn nguyên văn đã ẩn danh**. Lưu câu hỏi, kết quả đã làm sạch và tổng hợp trong `evidence/`. Giữ riêng bản có thông tin nhận dạng; không đưa lên repo.
-- [ ] **Minh:** Chốt **20–30 câu thử**, gồm **≥5 câu khó**, **≥2 câu từ chối/tấn công** và **≥1/3 câu từ người dùng hoặc dữ liệu thật**. Nếu dùng 24 câu, cần ít nhất 8 câu có nguồn thật. Ghi mã nguồn cho từng câu; dữ liệu demo giả lập không tự động thành câu có nguồn thật. Chạy `python run.py eval`, chấm theo metric, rồi `python run.py score eval/run-1.csv`; bàn giao **x/N và Run ID**.
+- [ ] **Nhật:** Chốt **≥20 phản hồi hợp lệ** từ người đã đọc review Shopee trong 3 tháng gần nhất, thuộc bất kỳ ngành hàng nào; lưu ngành hàng theo từng phản hồi và **≥5 trích dẫn nguyên văn đã ẩn danh**. Lưu câu hỏi, kết quả đã làm sạch và tổng hợp trong `evidence/`. Giữ riêng bản có thông tin nhận dạng; không đưa lên repo. Nếu ít người trả lời về ốp, không kết luận khảo sát đã xác nhận pain riêng của người mua ốp.
+- [ ] **Minh:** Chốt **20–30 câu thử**, gồm **≥5 câu khó**, **≥2 câu từ chối/tấn công** và **≥1/3 câu từ người dùng hoặc dữ liệu thật**. Nếu dùng 24 câu, cần ít nhất 8 câu có nguồn thật. Chỉ gắn `nguoi_dung` khi câu thử thực sự dựa trên phản hồi liên quan; ghi ngành hàng/mã phản hồi và không biến trải nghiệm về ngành khác thành bằng chứng về lỗi riêng của ốp. Dữ liệu demo giả lập không tự động thành câu có nguồn thật. Chạy `python run.py eval`, chấm theo metric, rồi `python run.py score eval/run-1.csv`; bàn giao **x/N và Run ID**.
 - [ ] **Quang:** Nối model thật đọc chữ, ảnh và khung hình video. Kiểm một ca thường và một ca lẫn biến thể. Quay **video 30 giây** thấy thao tác và phản hồi AI thật.
 - [ ] **Nghĩa:** Nối UI với `answer(text)`, kiểm đúng review dẫn chứng và mốc video; hoàn tất `spec.md` §0–§7. Mở video bằng tab ẩn danh, kiểm số lượt 1 rồi nộp CP3.
 

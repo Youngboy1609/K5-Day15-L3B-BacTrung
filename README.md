@@ -1,11 +1,17 @@
 > Đây là khung repo nộp bài. Điền mọi chỗ `____`, giữ nguyên tên các mục. **Mục 0 xoá đi sau khi tạo repo xong.**
 > Giờ, mốc, luật, rubric: xem `README.md`, `02-guide.md`, `03-rubric.md` trong repo đề (bộ đề BTC phát).
 
-# [Tên nhóm] — [Tên lát cắt]
+# BacTrung — Trợ lý đọc review Shopee
 
 **Thành viên, lớp, track:** xem [TEAMS.md](TEAMS.md). **Điền TEAMS.md đúng format**: khi chấm và đánh giá, BTC quét file này để ghép điểm cho từng người.
 
 *Lát cắt = phần nhỏ nhất làm xong được trong hackathon: một người dùng · một việc · một quyết định AI · một kết quả.*
+
+## Phạm vi sản phẩm
+
+Nhóm khảo sát người mua đã đọc review trên Shopee khi mua hoặc cân nhắc mua sản phẩm thuộc **bất kỳ ngành hàng nào**; kết quả sẽ được phân tích theo ngành hàng, không mặc định các nhóm có cùng một vấn đề.
+
+Bản demo giới hạn ở **ốp điện thoại**: người dùng chọn dòng máy và biến thể, app phân tích review cùng ảnh/khung hình video có liên quan trong bộ dữ liệu cục bộ, rồi đưa khuyến nghị kèm dẫn chứng để người mua tự quyết định. Demo này chưa chứng minh app áp dụng được cho các ngành hàng khác.
 
 ---
 

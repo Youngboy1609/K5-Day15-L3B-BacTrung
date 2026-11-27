@@ -2,6 +2,7 @@
 
 > Điền ở guide bước 1.2, xong trước **CP3 10:00 Thứ Bảy 28/11**. Chấm ở rubric R1.
 > Ba nguồn ngang nhau — tối thiểu **≥1 nguồn đạt ngưỡng**. Mạnh nhất: đào data ra insight → hỏi người dùng để kiểm lại (hoặc ngược lại).
+> Với BacTrung: khảo sát người đã đọc review Shopee trong 3 tháng gần nhất, thuộc mọi ngành hàng. Ghi ngành hàng từng người và báo cáo riêng; không mặc định kết quả đại diện cho mọi người mua Shopee. Demo ốp điện thoại là lát cắt riêng.
 
 ## 1. Nguồn đã dùng
 
@@ -15,7 +16,22 @@
 
 - Đào data: __/__ (__%) …
 - Phỏng vấn: __/3 người gặp *(n nhỏ không ghi %)* · số lần / tháng: P1 __, P2 __, P3 __ · mỗi lần mất __–__ phút
-- Khảo sát: n = __ · __/__ (__%) …
+- Khảo sát: __ phản hồi tổng, __ hợp lệ theo điều kiện “đã đọc review Shopee trong 3 tháng gần nhất” · __/__ gặp khó khăn mô tả ở câu __ (mẫu số là __ người trả lời câu này)
+
+### Phân bố phản hồi khảo sát theo ngành hàng
+
+| Ngành hàng trong lần gần nhất | Số phản hồi hợp lệ | Pain được nhắc đến (x/n) | Ghi chú/giới hạn |
+|---|---:|---:|---|
+| Điện thoại/phụ kiện | | | |
+| Điện tử | | | |
+| Gia dụng | | | |
+| Thời trang | | | |
+| Làm đẹp/sức khỏe | | | |
+| Nhà cửa/đời sống | | | |
+| Thực phẩm | | | |
+| Khác | | | |
+
+Không gộp các ngành hàng thành một kết luận nếu tình huống khác nhau; nêu số đếm thực tế. Ghi riêng số người nhắc đến ốp điện thoại; nếu số ít, không kết luận khảo sát đã xác nhận pain riêng của lát cắt demo.
 
 Phỏng vấn nhiều vai thì đếm theo từng vai, không cộng chung.
 
