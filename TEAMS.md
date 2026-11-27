@@ -12,8 +12,8 @@
 | STT | Họ và tên | Mã học viên | Vai trò | Phần việc chính |
 |---|---|---|---|---|
 | 1 | Hồ Trọng Nghĩa | 2A202603729 | Đội trưởng | Canvas, spec, UI/UX và tích hợp repo |
-| 2 | Nguyễn Đức Nhật | 2A202603812 | Thành viên | Khảo sát người mua ốp lưng và tổng hợp bằng chứng |
-| 3 | Nguyễn Cao Minh | 2A202604099 | Thành viên | Dữ liệu review mẫu, bộ câu thử và đánh giá |
+| 2 | Nguyễn Đức Nhật | 2A202603812 | Thành viên | Khảo sát, tổng hợp bằng chứng; dữ liệu review mẫu và công cụ tra cứu/lấy mẫu |
+| 3 | Nguyễn Cao Minh | 2A202604099 | Thành viên | Mô phỏng chi phí, bộ câu thử và đánh giá |
 | 4 | Phạm Đăng Quang | 2A202603760 | Thành viên | Workflow, tích hợp model và bản chạy thử AI |
 
 **Quy tắc điền**
