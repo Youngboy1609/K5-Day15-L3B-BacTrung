@@ -1,30 +1,31 @@
 /* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4
  * genre: modern-minimal · macrostructure: Workbench (live product, not screenshots)
- * theme: custom-cool-paper · enrichment: none · nav: N9 edge-aligned · footer: Ft2
+ * theme: warm paper and deep teal · enrichment: none · nav: N9 edge-aligned · footer: Ft2
  * type: system Vietnamese sans + system mono outlier (offline, user-approved)
  * contrast: pass (40–41) · mobile: pass (34, 49–57)
  */
 
 :root {
-  --color-paper: #f5f7fa;
+  --color-paper: #f8f7f2;
   --color-panel: #ffffff;
-  --color-ink: #17212b;
-  --color-muted: #526273;
-  --color-rule: #d5dde7;
-  --color-accent: #174fb8;
+  --color-ink: #202923;
+  --color-muted: #526158;
+  --color-rule: #d7ded6;
+  --color-control-border: #808b81;
+  --color-accent: #0f5b52;
   --color-accent-ink: #ffffff;
-  --color-accent-soft: #e8effc;
-  --color-positive: #176b46;
-  --color-positive-soft: #e8f5ee;
-  --color-review: #8a5a00;
-  --color-review-soft: #fff3db;
-  --color-negative: #a62b2b;
-  --color-negative-soft: #fff1f1;
-  --color-focus: #174fb8;
-  --color-error: #a62b2b;
-  --color-error-soft: #fff1f1;
-  --color-warning: #8a5a00;
-  --color-success: #176b46;
+  --color-accent-soft: #e5f1ee;
+  --color-positive: #176744;
+  --color-positive-soft: #e7f4eb;
+  --color-review: #744708;
+  --color-review-soft: #fff1d6;
+  --color-negative: #962c36;
+  --color-negative-soft: #fcecee;
+  --color-focus: var(--color-accent);
+  --color-error: var(--color-negative);
+  --color-error-soft: var(--color-negative-soft);
+  --color-warning: var(--color-review);
+  --color-success: var(--color-positive);
   --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "Cascadia Code", "SFMono-Regular", monospace;
   --space-3xs: 0.125rem;
@@ -37,7 +38,7 @@
   --space-2xl: 4rem;
   --radius: 0.5rem;
   --rule: 1px solid var(--color-rule);
-  --shadow: 0 1px 2px rgba(23, 33, 43, 0.06);
+  --shadow: 0 1px 2px rgb(32 41 35 / 6%);
   --dur-short: 160ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -117,7 +118,7 @@ summary:focus-visible,
 
 .button-secondary {
   background: var(--color-panel);
-  border-color: var(--color-rule);
+  border-color: var(--color-control-border);
   color: var(--color-ink);
 }
 
@@ -234,11 +235,11 @@ summary:focus-visible,
   font-variant-numeric: tabular-nums;
 }
 
-.progress-steps li.is-current {
+.progress-steps li[aria-current="step"] {
   color: var(--color-accent);
 }
 
-.progress-steps li.is-current .step-number {
+.progress-steps li[aria-current="step"] .step-number {
   border-color: var(--color-accent);
   background: var(--color-accent);
   color: var(--color-accent-ink);
@@ -272,7 +273,7 @@ select {
   width: 100%;
   min-width: 0;
   min-height: 48px;
-  border: 1px solid var(--color-rule);
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius);
   background: var(--color-panel);
   color: var(--color-ink);

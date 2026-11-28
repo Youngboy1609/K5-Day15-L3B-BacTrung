@@ -501,15 +501,13 @@
   form.addEventListener("submit", loadPreview);
   submitButton.addEventListener("click", analyze);
   $("preview-expand").addEventListener("click", togglePreview);
-  $("back-button").addEventListener("click", () => {
-    state.version += 1;
-    state.phase = "";
-    setBusy(false);
-    feedback.hidden = true;
-    setStage("product");
-    setStatus("Chỉnh lại sản phẩm, dòng máy hoặc biến thể rồi tải review lại.");
-    urlInput.focus({ preventScroll: true });
-  });
+  function returnToProduct() {
+    clearResult("Chỉnh lại sản phẩm, dòng máy hoặc biến thể rồi tải review lại.");
+    urlInput.focus();
+  }
+
+  $("back-button").addEventListener("click", returnToProduct);
+  $("change-product-button").addEventListener("click", returnToProduct);
   retryButton.addEventListener("click", () => {
     if (state.stage === "preview" && state.previewData) {
       analyze();

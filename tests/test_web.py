@@ -92,7 +92,7 @@ class WebDemoTests(unittest.TestCase):
         expect(self.page.locator("#preview-coverage")).to_contain_text("8 review")
         expect(self.page.locator("#preview-source")).to_contain_text("fixture")
         expect(self.page.locator("#preview-source")).to_contain_text("không truy cập Shopee")
-        expect(self.page.locator(".preview-item")).to_have_count(5)
+        expect(self.page.locator(".preview-item:visible")).to_have_count(5)
         expect(self.page.locator(".preview-item").first).to_contain_text("R001")
         expect(self.page.locator(".preview-item").nth(3)).to_contain_text("khung hình video")
         self.assertNotIn("video_frame", self.page.locator(".preview-item").nth(3).inner_text())
@@ -125,11 +125,11 @@ class WebDemoTests(unittest.TestCase):
         self.page.get_by_role("button", name="Dùng mẫu demo").click()
         with self.page.expect_response(lambda response: response.url.endswith("/preview")):
             self.page.get_by_role("button", name="Xem review khớp mẫu").click()
-        expect(self.page.locator(".preview-item")).to_have_count(5)
+        expect(self.page.locator(".preview-item:visible")).to_have_count(5)
         self.page.get_by_role("button", name="Xem thêm 3 review").click()
-        expect(self.page.locator(".preview-item")).to_have_count(8)
+        expect(self.page.locator(".preview-item:visible")).to_have_count(8)
         self.page.get_by_role("button", name="Thu gọn review").click()
-        expect(self.page.locator(".preview-item")).to_have_count(5)
+        expect(self.page.locator(".preview-item:visible")).to_have_count(5)
 
     def test_editing_product_cancels_a_stale_preview_response(self):
         self.page.get_by_role("button", name="Dùng mẫu demo").click()
@@ -217,7 +217,7 @@ class WebDemoTests(unittest.TestCase):
           };
         }""")
         self.page.locator("#analyze-button").click()
-        self.page.get_by_role("button", name="Quay lại chọn mẫu").click()
+        self.page.get_by_role("button", name="Đổi mẫu ốp").click()
         self.page.get_by_label("Dòng máy").select_option(label="iPhone 15")
         expect(self.page.get_by_role("status")).to_contain_text("Đã thay đổi mẫu")
         with self.page.expect_response(lambda response: response.url.endswith("/analyze")):
