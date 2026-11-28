@@ -199,6 +199,7 @@ class WebDemoTests(unittest.TestCase):
         expect(self.page.locator(".recommendation")).to_have_class("recommendation verdict verdict-review")
         expect(self.page.locator(".evidence-meta").first).to_contain_text("R010")
 
+        self.page.get_by_role("button", name="Đổi mẫu ốp").click()
         self.page.get_by_label("Dòng máy").select_option(label="iPhone 15")
         expect(self.page.locator(".result")).to_be_hidden()
         expect(self.page.get_by_role("status")).to_contain_text("Đã thay đổi mẫu")
@@ -254,7 +255,7 @@ class WebDemoTests(unittest.TestCase):
           };
         }""")
         self.page.locator("#analyze-button").click()
-        self.page.get_by_role("button", name="Đổi mẫu ốp").click()
+        self.page.get_by_role("button", name="Quay lại chọn mẫu").click()
         self.page.get_by_label("Dòng máy").select_option(label="iPhone 15")
         expect(self.page.get_by_role("status")).to_contain_text("Đã thay đổi mẫu")
         with self.page.expect_response(lambda response: response.url.endswith("/analyze")):
