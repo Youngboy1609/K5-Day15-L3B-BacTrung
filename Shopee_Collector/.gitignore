@@ -1,0 +1,12 @@
+.venv/
+browser-profile/
+chrome_profile/
+output/
+output_media/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.env
+*.log

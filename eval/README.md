@@ -21,8 +21,8 @@ Benchmark dùng 10 tình huống. Bốn được định hướng bởi survey r
 | `truy_vet_dan_chung` | Code đối chiếu mã và nguyên văn trích dẫn | 100% |
 | `tu_choi_khi_thieu_can_cu` | Code kiểm response invalid/unknown không có recommendation | 100% |
 
-- **Người thứ hai chấm thử:** Chưa thực hiện. Nghĩa/Minh cần chọn 5 output và chấm độc lập; ghi khớp thực tế x/5 (rubric yêu cầu ≥4/5), không điền trước kết quả.
-- **Trạng thái CP2:** Artifact và chuẩn đánh giá đã chốt; mẫu khảo sát dùng thống nhất 64 dòng CSV (42 eligible), không dùng con số 65 trong PR vì không có dữ liệu theo dòng để xác minh. Chỉ còn lượt chấm độc lập 5 output; chưa ghi kết quả hoặc tuyên bố sign-off trước khi người chấm thực hiện.
+- **Chấm độc lập:** Minh và Quang chấm riêng 5 output đại diện (B01, B03, B04, B06, B07); hai người đồng thuận **5/5** về kết quả đạt/không đạt, cả 5 đều đạt. Mức đồng thuận 100%, vượt ngưỡng rubric ≥4/5. Quang kiểm tra chéo thêm toàn bộ benchmark và ghi nhận **10/10 đạt**. Kết quả được ghi trong [comment review PR #4](https://github.com/Youngboy1609/K5-Day15-L3B-BacTrung/pull/4#issuecomment-7215803404).
+- **Trạng thái CP2:** Artifact, chuẩn đánh giá và lượt chấm độc lập đã hoàn tất. Mẫu khảo sát dùng thống nhất 64 dòng CSV (42 eligible); không dùng tally 65 trong PR vì không có dữ liệu theo dòng để xác minh.
 - LLM chấm: không dùng.
 - **Chuẩn đạt CP2 đã khóa:** ≥8/10 câu qua; đồng thời 100% input không hợp lệ/không có fixture/không đúng biến thể không khuyến nghị và 100% dẫn chứng đúng review/listing/dòng máy/biến thể. Hai câu tấn công phải bị từ chối.
 
@@ -41,4 +41,4 @@ Test unit/workflow không phải lượt benchmark AI; kết quả test ghi ở 
 
 ## 6. Lỗi chính
 
-Chưa có lượt model thật nên chưa có lỗi eval hay tỷ lệ đạt. Cần người thứ hai kiểm 5 output và cập nhật 20–30 câu trước CP3.
+CP2 dùng mock nên chưa có lượt đánh giá chất lượng bằng model AI thật; kết quả 10/10 là kiểm benchmark trên workflow mock, không đại diện cho chất lượng AI thật. Trước CP3 cần nối model thật và mở rộng bộ câu lên 20–30.
