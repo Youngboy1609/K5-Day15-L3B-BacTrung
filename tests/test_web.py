@@ -97,28 +97,69 @@ class WebDemoTests(unittest.TestCase):
         expect(self.page.locator(".evidence-item")).to_have_count(3)
 
     def test_result_layout_uses_two_columns_on_desktop_and_one_on_mobile(self):
-        self.page.set_viewport_size({"width": 768, "height": 1000})
-        self.page.get_by_role("button", name="Dùng mẫu demo").click()
-        self.analyze()
-        expect(self.page.locator("#result-layout")).to_be_visible()
-        column_count = self.page.locator("#result-layout").evaluate(
-            "element => getComputedStyle(element).gridTemplateColumns.trim().split(/\\s+/).length"
-        )
-        self.assertEqual(column_count, 2)
+        widths = (320, 375, 414, 768)
 
-        for width in (320, 375, 414, 768):
-            with self.subTest(width=width):
-                self.page.set_viewport_size({"width": width, "height": 1000})
-                dimensions = self.page.evaluate(
-                    "({scroll: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth})"
-                )
-                self.assertLessEqual(dimensions["scroll"], dimensions["viewport"])
-                expect(self.page.locator("#result-layout")).to_be_visible()
-                if width <= 640:
-                    column_count = self.page.locator("#result-layout").evaluate(
-                        "element => getComputedStyle(element).gridTemplateColumns.trim().split(/\\s+/).length"
+        def assert_stage_fits(stage):
+            for width in widths:
+                with self.subTest(stage=stage, width=width):
+                    self.page.set_viewport_size({"width": width, "height": 1000})
+                    dimensions = self.page.evaluate("""() => {
+                      const viewport = document.documentElement.clientWidth;
+                      const overflowing = [...document.body.querySelectorAll("*")].flatMap(element => {
+                        const style = getComputedStyle(element);
+                        const rect = element.getBoundingClientRect();
+                        if (style.visibility === "hidden" || style.display === "none" ||
+                            Number(style.opacity) === 0 || rect.width === 0 || rect.height === 0) return [];
+                        if (rect.left < -1 || rect.right > viewport + 1) {
+                          return [{
+                            tag: element.tagName.toLowerCase(),
+                            id: element.id,
+                            className: typeof element.className === "string" ? element.className : "",
+                            left: rect.left,
+                            right: rect.right
+                          }];
+                        }
+                        return [];
+                      });
+                      return {
+                        scroll: document.documentElement.scrollWidth,
+                        viewport,
+                        overflowing
+                      };
+                    }""")
+                    self.assertLessEqual(
+                        dimensions["scroll"],
+                        dimensions["viewport"],
+                        f"{stage} at {width}px: document overflows horizontally: {dimensions}",
                     )
-                    self.assertEqual(column_count, 1)
+                    self.assertEqual(
+                        dimensions["overflowing"],
+                        [],
+                        f"{stage} at {width}px: visible content outside viewport: "
+                        f"{dimensions['overflowing']}",
+                    )
+                    if stage == "result":
+                        column_count = self.page.locator("#result-layout").evaluate(
+                            "element => getComputedStyle(element).gridTemplateColumns.trim().split(/\\s+/).length"
+                        )
+                        if width == 768:
+                            self.assertEqual(column_count, 2)
+                        elif width <= 640:
+                            self.assertEqual(column_count, 1)
+
+        expect(self.page.locator("#product-layout")).to_be_visible()
+        assert_stage_fits("product")
+
+        self.page.get_by_role("button", name="Dùng mẫu demo").click()
+        with self.page.expect_response(lambda response: response.url.endswith("/preview")):
+            self.page.get_by_role("button", name="Xem review khớp mẫu").click()
+        expect(self.page.locator("#preview-layout")).to_be_visible()
+        assert_stage_fits("preview")
+
+        with self.page.expect_response(lambda response: response.url.endswith("/analyze")):
+            self.page.get_by_role("button", name="Phân tích 8 review").click()
+        expect(self.page.locator("#result-layout")).to_be_visible()
+        assert_stage_fits("result")
 
     def test_preview_and_result_are_separate_stages_and_preview_stays_during_analysis(self):
         self.page.get_by_role("button", name="Dùng mẫu demo").click()
