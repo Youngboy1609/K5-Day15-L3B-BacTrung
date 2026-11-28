@@ -35,3 +35,18 @@ evidence/**/raw-*
 # Nguyên file data BTC cấp (data/preclass, data/training-ops… của repo đề): để ở đây, không commit
 data-btc
 data-btc/
+
+# Shopee Collector — profile đăng nhập, cấu hình riêng và dữ liệu thu thập
+/Shopee_Collector/chrome_profile*/
+/Shopee_Collector/browser-profile*/
+/Shopee_Collector/output/
+/Shopee_Collector/output_media/
+/Shopee_Collector/config/settings.local.json
+/Shopee_Collector/**/*.sqlite3
+/Shopee_Collector/**/*.sqlite3-*
+/Shopee_Collector/**/*.har
+/Shopee_Collector/**/*.log
+/Shopee_Collector/**/*.py[cod]
+/Shopee_Collector/**/.pytest_cache/
+/Shopee_Collector/**/.mypy_cache/
+/Shopee_Collector/**/.ruff_cache/
