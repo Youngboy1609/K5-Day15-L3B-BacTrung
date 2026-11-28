@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import tracing
 from agent import answer
-from tools import load_product_dataset
+from tools import get_product_reviews, load_product_dataset
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 
@@ -113,7 +113,7 @@ class _Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlsplit(self.path).path
-        if path == "/analyze":
+        if path in {"/analyze", "/preview"}:
             self._method_not_allowed("POST")
             return
         if path == "/catalog":
@@ -142,7 +142,7 @@ class _Handler(BaseHTTPRequestHandler):
         if path == "/catalog":
             self._method_not_allowed("GET")
             return
-        if path != "/analyze":
+        if path not in {"/analyze", "/preview"}:
             self._error(404, "NOT_FOUND", "Đường dẫn không có trong bản demo.")
             return
         content_type = self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
@@ -167,6 +167,9 @@ class _Handler(BaseHTTPRequestHandler):
         if not isinstance(request, dict) or set(request) != {"product_url", "phone_model", "case_variant"}:
             self._error(400, "INVALID_INPUT", "Gửi JSON gồm đúng product_url, phone_model và case_variant.")
             return
+        if path == "/preview":
+            self._preview(request)
+            return
         if not self.server.analysis_lock.acquire(blocking=False):
             self._error(503, "ANALYSIS_BUSY", "Đang có một lượt phân tích. Hãy thử lại sau khi lượt đó xong.")
             return
@@ -185,6 +188,59 @@ class _Handler(BaseHTTPRequestHandler):
             self._error(200, "ANALYSIS_UNAVAILABLE", "Phân tích chưa đủ dữ liệu để hiển thị; chưa đưa ra khuyến nghị.")
             return
         self._json(200, result)
+
+    def _preview(self, request):
+        try:
+            lookup = get_product_reviews(
+                request["product_url"],
+                request["phone_model"],
+                request["case_variant"],
+            )
+        except (OSError, ValueError, KeyError, TypeError):
+            self._error(503, "PREVIEW_UNAVAILABLE", "Chưa đọc được review từ dữ liệu local. Hãy thử lại.")
+            return
+        if lookup.get("status") != "ok":
+            result = {
+                "status": lookup.get("status", "error"),
+                "code": lookup.get("code", "PREVIEW_UNAVAILABLE"),
+                "message": lookup.get("message", "Chưa tìm được review phù hợp."),
+            }
+            if isinstance(lookup.get("available_variants"), list):
+                result["available_variants"] = lookup["available_variants"]
+            self._json(200, result)
+            return
+
+        reviews = []
+        for review in lookup["reviews"]:
+            media = review.get("media", [])
+            reviews.append({
+                "review_id": review["review_id"],
+                "stars": review["stars"],
+                "text": review["text"],
+                "media_count": len(media),
+                "media_types": [
+                    item["type"] for item in media
+                    if isinstance(item, dict) and isinstance(item.get("type"), str)
+                ],
+            })
+        self._json(200, {
+            "status": "ok",
+            "source_type": lookup["source_type"],
+            "source_label": lookup["source_label"],
+            "product": {
+                "product_id": lookup["product_id"],
+                "product_title": lookup["product_title"],
+            },
+            "phone_model": lookup["phone_model"],
+            "case_variant": lookup["case_variant"],
+            "coverage": {
+                "review_count": len(reviews),
+                "eligible_count": lookup["eligible_count"],
+                "sample_limit": lookup["sample_limit"],
+                "sample_seed": lookup["sample_seed"],
+            },
+            "reviews": reviews,
+        })
 
     def _method_not_allowed(self, allow):
         self.send_response(405)

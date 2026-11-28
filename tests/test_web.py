@@ -2,7 +2,6 @@ import json
 import os
 import sys
 import threading
-import time
 import unittest
 
 try:
@@ -62,8 +61,13 @@ class WebDemoTests(unittest.TestCase):
         self.context.close()
 
     def analyze(self):
+        if self.page.locator("#preview").is_hidden():
+            with self.page.expect_response(lambda response: response.url.endswith("/preview")):
+                self.page.get_by_role("button", name="Xem review khớp mẫu").click()
+            if self.page.locator("#preview").is_hidden():
+                return
         with self.page.expect_response(lambda response: response.url.endswith("/analyze")):
-            self.page.get_by_role("button", name="Phân tích review").click()
+            self.page.locator("#analyze-button").click()
         response = self.page.wait_for_timeout(50)
 
     def test_initial_screen_has_no_fabricated_result_and_demo_is_one_click(self):
@@ -76,6 +80,157 @@ class WebDemoTests(unittest.TestCase):
         )
         expect(self.page.get_by_label("Dòng máy")).to_be_enabled()
         expect(self.page.get_by_label("Biến thể ốp")).to_be_enabled()
+        expect(self.page.locator("#preview")).to_be_hidden()
+        expect(self.page.locator("#result")).to_be_hidden()
+
+    def test_editorial_regions_exist_across_all_three_stages(self):
+        expect(self.page.locator("#product-layout")).to_be_visible()
+        self.page.get_by_role("button", name="Dùng mẫu demo").click()
+        with self.page.expect_response(lambda response: response.url.endswith("/preview")):
+            self.page.get_by_role("button", name="Xem review khớp mẫu").click()
+        expect(self.page.locator("#preview-layout")).to_be_visible()
+        expect(self.page.locator("#preview-source")).to_contain_text("fixture")
+        with self.page.expect_response(lambda response: response.url.endswith("/analyze")):
+            self.page.get_by_role("button", name="Phân tích 8 review").click()
+        expect(self.page.locator("#result-layout")).to_be_visible()
+        expect(self.page.locator(".recommendation")).to_contain_text("Cần xem xét thêm")
+        expect(self.page.locator(".evidence-item")).to_have_count(3)
+
+    def test_result_layout_uses_two_columns_on_desktop_and_one_on_mobile(self):
+        widths = (320, 375, 414, 768)
+
+        def assert_stage_fits(stage):
+            for width in widths:
+                with self.subTest(stage=stage, width=width):
+                    self.page.set_viewport_size({"width": width, "height": 1000})
+                    dimensions = self.page.evaluate("""() => {
+                      const viewport = document.documentElement.clientWidth;
+                      const overflowing = [...document.body.querySelectorAll("*")].flatMap(element => {
+                        const style = getComputedStyle(element);
+                        const rect = element.getBoundingClientRect();
+                        if (style.visibility === "hidden" || style.display === "none" ||
+                            Number(style.opacity) === 0 || rect.width === 0 || rect.height === 0) return [];
+                        if (rect.left < -1 || rect.right > viewport + 1) {
+                          return [{
+                            tag: element.tagName.toLowerCase(),
+                            id: element.id,
+                            className: typeof element.className === "string" ? element.className : "",
+                            left: rect.left,
+                            right: rect.right
+                          }];
+                        }
+                        return [];
+                      });
+                      return {
+                        scroll: document.documentElement.scrollWidth,
+                        viewport,
+                        overflowing
+                      };
+                    }""")
+                    self.assertLessEqual(
+                        dimensions["scroll"],
+                        dimensions["viewport"],
+                        f"{stage} at {width}px: document overflows horizontally: {dimensions}",
+                    )
+                    self.assertEqual(
+                        dimensions["overflowing"],
+                        [],
+                        f"{stage} at {width}px: visible content outside viewport: "
+                        f"{dimensions['overflowing']}",
+                    )
+                    if stage == "result":
+                        column_count = self.page.locator("#result-layout").evaluate(
+                            "element => getComputedStyle(element).gridTemplateColumns.trim().split(/\\s+/).length"
+                        )
+                        if width == 768:
+                            self.assertEqual(column_count, 2)
+                        elif width <= 640:
+                            self.assertEqual(column_count, 1)
+
+        expect(self.page.locator("#product-layout")).to_be_visible()
+        assert_stage_fits("product")
+
+        self.page.get_by_role("button", name="Dùng mẫu demo").click()
+        with self.page.expect_response(lambda response: response.url.endswith("/preview")):
+            self.page.get_by_role("button", name="Xem review khớp mẫu").click()
+        expect(self.page.locator("#preview-layout")).to_be_visible()
+        assert_stage_fits("preview")
+
+        with self.page.expect_response(lambda response: response.url.endswith("/analyze")):
+            self.page.get_by_role("button", name="Phân tích 8 review").click()
+        expect(self.page.locator("#result-layout")).to_be_visible()
+        assert_stage_fits("result")
+
+    def test_preview_and_result_are_separate_stages_and_preview_stays_during_analysis(self):
+        self.page.get_by_role("button", name="Dùng mẫu demo").click()
+        with self.page.expect_response(lambda response: response.url.endswith("/preview")):
+            self.page.get_by_role("button", name="Xem review khớp mẫu").click()
+
+        expect(self.page.locator("#preview")).to_be_visible()
+        expect(self.page.locator("#preview-coverage")).to_contain_text("8 review")
+        expect(self.page.locator("#preview-source")).to_contain_text("fixture")
+        expect(self.page.locator("#preview-source")).to_contain_text("không truy cập Shopee")
+        expect(self.page.locator(".preview-item:visible")).to_have_count(5)
+        expect(self.page.locator(".preview-item").first).to_contain_text("R001")
+        expect(self.page.locator(".preview-item").nth(3)).to_contain_text("khung hình video")
+        self.assertNotIn("video_frame", self.page.locator(".preview-item").nth(3).inner_text())
+        expect(self.page.locator("#result")).to_be_hidden()
+        expect(self.page.locator("#step-preview")).to_have_attribute("aria-current", "step")
+
+        self.page.evaluate("""() => {
+          const originalFetch = window.fetch.bind(window);
+          window.fetch = (url, options) => {
+            if (url !== "/analyze") return originalFetch(url, options);
+            return new Promise(resolve => {
+              window.__releaseAnalyze = () => {
+                window.fetch = originalFetch;
+                originalFetch(url, options).then(resolve);
+              };
+            });
+          };
+        }""")
+        self.page.locator("#analyze-button").click()
+        expect(self.page.locator("#preview")).to_be_visible()
+        expect(self.page.locator("#analysis-status")).to_contain_text("AI đang đánh giá 8 review")
+        expect(self.page.locator("#analyze-button")).to_be_disabled()
+        expect(self.page.locator("#result")).to_be_hidden()
+        with self.page.expect_response(lambda response: response.url.endswith("/analyze")):
+            self.page.evaluate("window.__releaseAnalyze()")
+        expect(self.page.locator("#result")).to_be_visible()
+        expect(self.page.locator("#step-result")).to_have_attribute("aria-current", "step")
+
+    def test_preview_can_expand_and_collapse_review_sample(self):
+        self.page.get_by_role("button", name="Dùng mẫu demo").click()
+        with self.page.expect_response(lambda response: response.url.endswith("/preview")):
+            self.page.get_by_role("button", name="Xem review khớp mẫu").click()
+        expect(self.page.locator(".preview-item:visible")).to_have_count(5)
+        self.page.get_by_role("button", name="Xem thêm 3 review").click()
+        expect(self.page.locator(".preview-item:visible")).to_have_count(8)
+        self.page.get_by_role("button", name="Thu gọn review").click()
+        expect(self.page.locator(".preview-item:visible")).to_have_count(5)
+
+    def test_editing_product_cancels_a_stale_preview_response(self):
+        self.page.get_by_role("button", name="Dùng mẫu demo").click()
+        self.page.evaluate("""() => {
+          const originalFetch = window.fetch.bind(window);
+          window.fetch = (url, options) => {
+            if (url !== "/preview") return originalFetch(url, options);
+            return new Promise(resolve => {
+              window.__releasePreview = () => {
+                window.fetch = originalFetch;
+                originalFetch(url, options).then(resolve);
+              };
+            });
+          };
+        }""")
+        self.page.get_by_role("button", name="Xem review khớp mẫu").click()
+        expect(self.page.locator("#preview-button")).to_be_disabled()
+        self.page.get_by_label("Link Shopee").fill("https://shopee.vn/edited-product")
+        expect(self.page.locator("#preview-button")).to_be_enabled()
+        with self.page.expect_response(lambda response: response.url.endswith("/preview")):
+            self.page.evaluate("window.__releasePreview()")
+        expect(self.page.locator("#preview")).to_be_hidden()
+        expect(self.page.locator("#analyze-form")).to_be_visible()
 
     def test_switching_phone_model_changes_coverage_and_evidence(self):
         self.page.get_by_role("button", name="Dùng mẫu demo").click()
@@ -85,6 +240,7 @@ class WebDemoTests(unittest.TestCase):
         expect(self.page.locator(".recommendation")).to_have_class("recommendation verdict verdict-review")
         expect(self.page.locator(".evidence-meta").first).to_contain_text("R010")
 
+        self.page.get_by_role("button", name="Đổi mẫu ốp").click()
         self.page.get_by_label("Dòng máy").select_option(label="iPhone 15")
         expect(self.page.locator(".result")).to_be_hidden()
         expect(self.page.get_by_role("status")).to_contain_text("Đã thay đổi mẫu")
@@ -124,17 +280,27 @@ class WebDemoTests(unittest.TestCase):
         self.assertIn("Đáng lưu ý", labels)
 
     def test_stale_response_is_ignored_after_input_changes(self):
-        def delayed(route):
-            time.sleep(0.6)
-            route.continue_()
-
-        self.page.route("**/analyze", delayed)
         self.page.get_by_role("button", name="Dùng mẫu demo").click()
-        with self.page.expect_response(lambda response: response.url.endswith("/analyze")):
-            self.page.get_by_role("button", name="Phân tích review").click()
+        with self.page.expect_response(lambda response: response.url.endswith("/preview")):
+            self.page.get_by_role("button", name="Xem review khớp mẫu").click()
+        self.page.evaluate("""() => {
+          const originalFetch = window.fetch.bind(window);
+          window.fetch = (url, options) => {
+            if (url !== "/analyze") return originalFetch(url, options);
+            return new Promise(resolve => {
+              window.__releaseAnalyze = () => {
+                window.fetch = originalFetch;
+                originalFetch(url, options).then(resolve);
+              };
+            });
+          };
+        }""")
+        self.page.locator("#analyze-button").click()
+        self.page.get_by_role("button", name="Quay lại chọn mẫu").click()
         self.page.get_by_label("Dòng máy").select_option(label="iPhone 15")
         expect(self.page.get_by_role("status")).to_contain_text("Đã thay đổi mẫu")
-        self.page.wait_for_timeout(800)
+        with self.page.expect_response(lambda response: response.url.endswith("/analyze")):
+            self.page.evaluate("window.__releaseAnalyze()")
         expect(self.page.locator(".result")).to_be_hidden()
 
     def test_model_failure_is_safe_and_retryable(self):
@@ -178,20 +344,16 @@ class WebDemoTests(unittest.TestCase):
 
     def test_variant_not_found_is_safe_and_asks_for_a_new_choice(self):
         self.page.route(
-            "**/analyze",
+            "**/preview",
             lambda route: route.fulfill(
                 status=200,
                 content_type="application/json",
                 body=json.dumps(
                     {
-                        "output": json.dumps(
-                            {
-                                "status": "needs_input",
-                                "code": "VARIANT_NOT_FOUND",
-                                "message": "Chưa thấy đúng biến thể. Hãy chọn lại.",
-                                "available_variants": ["Ốp trong suốt viền đen"],
-                            }
-                        )
+                        "status": "needs_input",
+                        "code": "VARIANT_NOT_FOUND",
+                        "message": "Chưa thấy đúng biến thể. Hãy chọn lại.",
+                        "available_variants": ["Ốp trong suốt viền đen"],
                     }
                 ),
             ),
@@ -209,7 +371,7 @@ class WebDemoTests(unittest.TestCase):
         )
         self.assertNotEqual(outline, "none")
         self.page.emulate_media(reduced_motion="reduce")
-        duration = self.page.get_by_role("button", name="Phân tích review").evaluate(
+        duration = self.page.locator("#preview-button").evaluate(
             "element => getComputedStyle(element).transitionDuration"
         )
         self.assertTrue(duration.startswith("0.01s") or duration.startswith("0s"))

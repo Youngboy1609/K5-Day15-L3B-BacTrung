@@ -21,41 +21,81 @@
       <p>Chọn dòng máy và biến thể. Kết quả chỉ dùng review của đúng mẫu, kèm dẫn chứng để bạn tự quyết định.</p>
     </section>
 
-    <div class="workbench">
+    <ol class="progress-steps" aria-label="Các bước đánh giá">
+      <li id="step-product" aria-current="step"><span class="step-number">1</span><span>Sản phẩm</span></li>
+      <li id="step-preview"><span class="step-number">2</span><span>Review khớp mẫu</span></li>
+      <li id="step-result"><span class="step-number">3</span><span>Kết quả</span></li>
+    </ol>
+
+    <div id="workbench" class="workbench" data-stage="product">
       <form id="analyze-form" class="controls" novalidate>
-        <div class="field">
-          <label for="product-url">Link Shopee</label>
-          <input id="product-url" name="product_url" type="url" list="listing-options" autocomplete="off" required aria-describedby="url-help url-error">
-          <datalist id="listing-options"></datalist>
-          <p id="url-help" class="field-help">Dùng link fixture cục bộ; demo không truy cập Shopee.</p>
-          <p id="url-error" class="field-error" hidden></p>
-        </div>
+        <div id="product-layout" class="product-layout">
+          <div class="product-fields">
+            <div class="field">
+              <label for="product-url">Link Shopee</label>
+              <input id="product-url" name="product_url" type="url" list="listing-options" autocomplete="off" required aria-describedby="url-help url-error">
+              <datalist id="listing-options"></datalist>
+              <p id="url-help" class="field-help">Dùng URL sản phẩm có trong dữ liệu cục bộ.</p>
+              <p id="url-error" class="field-error" hidden></p>
+            </div>
 
-        <button id="demo-button" class="button button-secondary" type="button">Dùng mẫu demo</button>
+            <button id="demo-button" class="button button-secondary" type="button">Dùng mẫu demo</button>
 
-        <div class="field">
-          <label for="phone-model">Dòng máy</label>
-          <select id="phone-model" name="phone_model" required disabled aria-describedby="model-help model-error">
-            <option value="">Chọn dòng máy</option>
-          </select>
-          <p id="model-help" class="field-help">Chọn link demo để mở danh sách dòng máy.</p>
-          <p id="model-error" class="field-error" hidden></p>
-        </div>
+            <div class="field">
+              <label for="phone-model">Dòng máy</label>
+              <select id="phone-model" name="phone_model" required disabled aria-describedby="model-help model-error">
+                <option value="">Chọn dòng máy</option>
+              </select>
+              <p id="model-help" class="field-help">Chọn link sản phẩm có dữ liệu cục bộ để mở danh sách dòng máy.</p>
+              <p id="model-error" class="field-error" hidden></p>
+            </div>
 
-        <div class="field">
-          <label for="case-variant">Biến thể ốp</label>
-          <select id="case-variant" name="case_variant" required disabled aria-describedby="variant-help variant-error">
-            <option value="">Chọn biến thể</option>
-          </select>
-          <p id="variant-help" class="field-help">Review của biến thể khác không được dùng.</p>
-          <p id="variant-error" class="field-error" hidden></p>
-        </div>
+            <div class="field">
+              <label for="case-variant">Biến thể ốp</label>
+              <select id="case-variant" name="case_variant" required disabled aria-describedby="variant-help variant-error">
+                <option value="">Chọn biến thể</option>
+              </select>
+              <p id="variant-help" class="field-help">Review của biến thể khác không được dùng.</p>
+              <p id="variant-error" class="field-error" hidden></p>
+            </div>
 
-        <div class="actions">
-          <button id="analyze-button" class="button button-primary" type="submit">Phân tích review</button>
+            <div class="actions">
+              <button id="preview-button" class="button button-primary" type="submit">Xem review khớp mẫu</button>
+            </div>
+            <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
+          </div>
+          <aside class="product-note" aria-label="Thông tin về dữ liệu">
+            <p>Dữ liệu chỉ khớp khi URL, dòng máy và biến thể trùng chính xác với dữ liệu có sẵn. Demo không truy cập Shopee.</p>
+          </aside>
         </div>
-        <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
       </form>
+
+      <section id="preview" class="preview" tabindex="-1" aria-labelledby="preview-title" hidden>
+        <div class="preview-head">
+          <p class="section-label">Bước 2 · Kiểm tra dữ liệu</p>
+          <h2 id="preview-title" tabindex="-1">Review đúng mẫu</h2>
+          <p id="preview-context" class="preview-context"></p>
+        </div>
+        <div id="preview-layout" class="preview-layout">
+          <div class="preview-list-section">
+            <div class="preview-list-heading">
+              <h3>Review sẽ được đưa vào phân tích</h3>
+              <p id="preview-list-note"></p>
+            </div>
+            <div id="preview-list" class="preview-list"></div>
+            <button id="preview-expand" class="text-button" type="button" hidden></button>
+          </div>
+          <aside class="preview-contextual" aria-label="Nguồn và độ bao phủ dữ liệu">
+            <p id="preview-source" class="preview-source"></p>
+            <p id="preview-coverage" class="preview-coverage"></p>
+          </aside>
+        </div>
+        <p id="analysis-status" class="analysis-status" role="status" aria-live="polite"></p>
+        <div class="preview-actions">
+          <button id="back-button" class="button button-secondary" type="button">Quay lại chọn mẫu</button>
+          <button id="analyze-button" class="button button-primary" type="button">Phân tích review</button>
+        </div>
+      </section>
 
       <section id="result" class="result" tabindex="-1" aria-labelledby="result-title" hidden>
         <div class="result-head">
@@ -63,12 +103,16 @@
           <h2 id="result-title">Kết quả phân tích</h2>
           <p id="result-context" class="result-context"></p>
         </div>
-        <p id="recommendation" class="recommendation"></p>
-        <p id="coverage" class="coverage"><span id="coverage-number" class="coverage-number">— / —</span><span id="coverage-label" class="coverage-label"></span></p>
-        <p id="coverage-note" class="coverage-note"></p>
-        <div class="evidence-section">
-          <h3>Dẫn chứng đáng lưu ý</h3>
-          <div id="evidence-list" class="evidence-list"></div>
+        <div id="result-layout" class="result-layout">
+          <div class="result-summary">
+            <p id="recommendation" class="recommendation"></p>
+            <p id="coverage" class="coverage"><span id="coverage-number" class="coverage-number">— / —</span><span id="coverage-label" class="coverage-label"></span></p>
+            <p id="coverage-note" class="coverage-note"></p>
+          </div>
+          <aside class="evidence-section" aria-label="Dẫn chứng">
+            <h3>Dẫn chứng đáng lưu ý</h3>
+            <div id="evidence-list" class="evidence-list"></div>
+          </aside>
         </div>
         <div class="advice-section">
           <h3>Nên kiểm tra gì trước khi mua</h3>
@@ -78,6 +122,9 @@
           <summary>Chi tiết phân tích</summary>
           <div id="details-content"></div>
         </details>
+        <div class="preview-actions">
+          <button id="change-product-button" class="button button-secondary" type="button">Đổi mẫu ốp</button>
+        </div>
       </section>
 
       <section id="feedback" class="feedback" aria-labelledby="feedback-title" hidden>
