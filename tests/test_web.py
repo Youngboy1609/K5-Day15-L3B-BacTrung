@@ -83,6 +83,43 @@ class WebDemoTests(unittest.TestCase):
         expect(self.page.locator("#preview")).to_be_hidden()
         expect(self.page.locator("#result")).to_be_hidden()
 
+    def test_editorial_regions_exist_across_all_three_stages(self):
+        expect(self.page.locator("#product-layout")).to_be_visible()
+        self.page.get_by_role("button", name="Dùng mẫu demo").click()
+        with self.page.expect_response(lambda response: response.url.endswith("/preview")):
+            self.page.get_by_role("button", name="Xem review khớp mẫu").click()
+        expect(self.page.locator("#preview-layout")).to_be_visible()
+        expect(self.page.locator("#preview-source")).to_contain_text("fixture")
+        with self.page.expect_response(lambda response: response.url.endswith("/analyze")):
+            self.page.get_by_role("button", name="Phân tích 8 review").click()
+        expect(self.page.locator("#result-layout")).to_be_visible()
+        expect(self.page.locator(".recommendation")).to_contain_text("Cần xem xét thêm")
+        expect(self.page.locator(".evidence-item")).to_have_count(3)
+
+    def test_result_layout_uses_two_columns_on_desktop_and_one_on_mobile(self):
+        self.page.set_viewport_size({"width": 768, "height": 1000})
+        self.page.get_by_role("button", name="Dùng mẫu demo").click()
+        self.analyze()
+        expect(self.page.locator("#result-layout")).to_be_visible()
+        column_count = self.page.locator("#result-layout").evaluate(
+            "element => getComputedStyle(element).gridTemplateColumns.trim().split(/\\s+/).length"
+        )
+        self.assertEqual(column_count, 2)
+
+        for width in (320, 375, 414, 768):
+            with self.subTest(width=width):
+                self.page.set_viewport_size({"width": width, "height": 1000})
+                dimensions = self.page.evaluate(
+                    "({scroll: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth})"
+                )
+                self.assertLessEqual(dimensions["scroll"], dimensions["viewport"])
+                expect(self.page.locator("#result-layout")).to_be_visible()
+                if width <= 640:
+                    column_count = self.page.locator("#result-layout").evaluate(
+                        "element => getComputedStyle(element).gridTemplateColumns.trim().split(/\\s+/).length"
+                    )
+                    self.assertEqual(column_count, 1)
+
     def test_preview_and_result_are_separate_stages_and_preview_stays_during_analysis(self):
         self.page.get_by_role("button", name="Dùng mẫu demo").click()
         with self.page.expect_response(lambda response: response.url.endswith("/preview")):
