@@ -7,12 +7,22 @@
   const modelInput = $("phone-model");
   const variantInput = $("case-variant");
   const submitButton = $("analyze-button");
+  const previewButton = $("preview-button");
   const demoButton = $("demo-button");
   const statusLine = $("form-status");
+  const previewPanel = $("preview");
   const result = $("result");
   const feedback = $("feedback");
   const retryButton = $("retry-button");
-  const state = { catalog: [], version: 0, busy: false };
+  const state = {
+    catalog: [],
+    version: 0,
+    busy: false,
+    phase: "",
+    stage: "product",
+    previewData: null,
+    previewExpanded: false,
+  };
 
   function setStatus(message) {
     statusLine.textContent = message;
@@ -39,11 +49,46 @@
 
   function clearResult(message) {
     state.version += 1;
+    state.phase = "";
+    state.previewData = null;
+    state.previewExpanded = false;
     result.hidden = true;
+    previewPanel.hidden = true;
+    $("preview-list").replaceChildren();
+    $("preview-expand").hidden = true;
     feedback.hidden = true;
     feedback.classList.remove("is-error");
     retryButton.hidden = true;
+    setBusy(false);
+    setStage("product");
     setStatus(message || "");
+  }
+
+  function setStage(stage) {
+    state.stage = stage;
+    $("workbench").dataset.stage = stage;
+    form.hidden = stage !== "product";
+    previewPanel.hidden = stage !== "preview";
+    result.hidden = stage !== "result";
+    for (const [name, id] of [
+      ["product", "step-product"],
+      ["preview", "step-preview"],
+      ["result", "step-result"],
+    ]) {
+      const item = $(id);
+      if (name === stage) {
+        item.setAttribute("aria-current", "step");
+        item.classList.add("is-current");
+      } else {
+        item.removeAttribute("aria-current");
+        item.classList.toggle(
+          "is-complete",
+          ["product", "preview", "result"].indexOf(name) <
+            ["product", "preview", "result"].indexOf(stage)
+        );
+        item.classList.remove("is-current");
+      }
+    }
   }
 
   function option(value, label) {
@@ -94,13 +139,24 @@
 
   function setBusy(busy) {
     state.busy = busy;
+    previewButton.disabled = busy;
+    previewButton.textContent = busy && state.phase === "preview"
+      ? "Đang tìm review…"
+      : "Xem review khớp mẫu";
     submitButton.disabled = busy;
-    submitButton.textContent = busy ? "Đang phân tích…" : "Phân tích review";
+    const count = state.previewData?.reviews?.length;
+    if (busy && state.phase === "analysis") {
+      submitButton.textContent = "Đang phân tích…";
+    } else {
+      submitButton.textContent = count === undefined
+        ? "Phân tích review"
+        : `Phân tích ${count} review`;
+    }
     form.setAttribute("aria-busy", busy ? "true" : "false");
+    previewPanel.setAttribute("aria-busy", busy && state.phase === "analysis" ? "true" : "false");
   }
 
   function showFeedback(title, message, code, isError) {
-    result.hidden = true;
     feedback.hidden = false;
     feedback.classList.toggle("is-error", Boolean(isError));
     $("feedback-title").textContent = title;
@@ -108,6 +164,75 @@
     $("feedback-code").textContent = code || "";
     retryButton.hidden = !isError;
     setStatus(message);
+  }
+
+  function renderPreview(data) {
+    state.previewData = data;
+    state.previewExpanded = false;
+    $("preview-context").textContent =
+      `${data.product?.product_title || "Sản phẩm"} · ${data.phone_model} · ${data.case_variant}`;
+    const sourceType = data.source_type === "collector"
+      ? "Dữ liệu collector đã thu thập"
+      : "Dữ liệu giả lập";
+    $("preview-source").textContent =
+      `Nguồn: ${sourceType} · ${data.source_label || "dữ liệu local"} · không truy cập Shopee trong bước này.`;
+    $("preview-coverage").textContent =
+      `${data.coverage.review_count} review trong mẫu · ${data.coverage.eligible_count} review đúng biến thể`;
+    $("preview-list-note").textContent =
+      "Kiểm tra nhanh nội dung trước khi yêu cầu AI đánh giá.";
+    $("analysis-status").textContent = "";
+
+    const list = $("preview-list");
+    list.replaceChildren();
+    for (const [index, review] of data.reviews.entries()) {
+      const article = document.createElement("article");
+      article.className = "preview-item";
+      if (index >= 5) article.hidden = true;
+
+      const meta = document.createElement("p");
+      meta.className = "preview-meta";
+      meta.textContent = `${review.stars}/5 sao · ${review.review_id}`;
+
+      const text = document.createElement("p");
+      text.className = "preview-review-text";
+      text.textContent = review.text || "Review không có nội dung chữ.";
+
+      const media = document.createElement("p");
+      media.className = "preview-media";
+      const mediaLabels = {
+        image: "ảnh",
+        video_frame: "khung hình video",
+        video: "video",
+      };
+      const mediaSummary = review.media_types
+        .map((type) => mediaLabels[type] || "media")
+        .join(", ");
+      media.textContent = review.media_count
+        ? `Có ${review.media_count} mục media: ${mediaSummary}. Tệp không hiển thị ở bước xem nhanh.`
+        : "Không có ảnh/video đính kèm.";
+
+      article.append(meta, text, media);
+      list.append(article);
+    }
+
+    const hiddenCount = Math.max(0, data.reviews.length - 5);
+    const expandButton = $("preview-expand");
+    expandButton.hidden = hiddenCount === 0;
+    expandButton.textContent = `Xem thêm ${hiddenCount} review`;
+    submitButton.textContent = `Phân tích ${data.reviews.length} review`;
+    setStage("preview");
+  }
+
+  function togglePreview() {
+    state.previewExpanded = !state.previewExpanded;
+    const items = $("preview-list").querySelectorAll(".preview-item");
+    items.forEach((item, index) => {
+      item.hidden = !state.previewExpanded && index >= 5;
+    });
+    const hiddenCount = Math.max(0, (state.previewData?.reviews?.length || 0) - 5);
+    $("preview-expand").textContent = state.previewExpanded
+      ? "Thu gọn review"
+      : `Xem thêm ${hiddenCount} review`;
   }
 
   function modeLabel(mode) {
@@ -221,7 +346,7 @@
     $("advice").textContent = output.advice || "Đối chiếu lại biến thể và chính sách đổi trả trước khi đặt.";
     renderDetails(output);
     feedback.hidden = true;
-    result.hidden = false;
+    setStage("result");
     result.focus({ preventScroll: true });
     if (window.matchMedia("(max-width: 40rem)").matches) {
       const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
@@ -247,7 +372,7 @@
     return { ...data, result: data };
   }
 
-  async function analyze(event) {
+  async function loadPreview(event) {
     event.preventDefault();
     if (state.busy) return;
     clearFieldErrors();
@@ -269,9 +394,60 @@
       return;
     }
 
-    clearResult("Đang phân tích review đúng mẫu…");
-    const version = state.version;
+    result.hidden = true;
+    feedback.hidden = true;
+    state.previewData = null;
+    state.phase = "preview";
+    $("analysis-status").textContent = "";
+    setStatus("Đang tìm review trong dữ liệu local đúng mẫu…");
+    const version = ++state.version;
     setBusy(true);
+    try {
+      const response = await fetch("/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(request),
+      });
+      const data = await readResponse(response);
+      if (version !== state.version) return;
+      if (data.status === "ok") {
+        renderPreview(data);
+        $("preview-title").focus({ preventScroll: true });
+        setStatus(`Đã tìm thấy ${data.coverage.review_count} review trong mẫu.`);
+      } else if (data.status === "needs_input") {
+        showFeedback("Cần chọn lại mẫu", data.message || "Biến thể chưa khớp.", data.code, true);
+        setStage("product");
+        variantInput.focus();
+      } else {
+        showFeedback("Chưa tìm thấy dữ liệu", data.message || "Thử lại sau.", data.code, true);
+        setStage("product");
+      }
+    } catch (error) {
+      if (version === state.version) {
+        showFeedback("Chưa tải được review", error.message || "Kiểm tra kết nối local rồi thử lại.", "PREVIEW_UNAVAILABLE", true);
+        setStage("product");
+      }
+    } finally {
+      if (version === state.version) {
+        state.phase = "";
+        setBusy(false);
+      }
+    }
+  }
+
+  async function analyze() {
+    if (state.busy || !state.previewData) return;
+    const request = {
+      product_url: urlInput.value.trim(),
+      phone_model: modelInput.value,
+      case_variant: variantInput.value,
+    };
+    state.phase = "analysis";
+    const version = ++state.version;
+    $("analysis-status").textContent =
+      `AI đang đánh giá ${state.previewData.reviews.length} review trong danh sách đã tải.`;
+    setBusy(true);
+    feedback.hidden = true;
     try {
       const response = await fetch("/analyze", {
         method: "POST",
@@ -281,19 +457,25 @@
       const data = await readResponse(response);
       if (version !== state.version) return;
       if (data.status === "ok") {
+        $("analysis-status").textContent = "Đã hoàn tất phân tích.";
         renderResult(data.result);
       } else if (data.status === "needs_input") {
         showFeedback("Cần chọn lại mẫu", data.message || "Biến thể chưa khớp.", data.code, true);
-        variantInput.focus();
+        $("analysis-status").textContent = "";
       } else {
         showFeedback("Chưa phân tích được", data.message || "Thử lại sau.", data.code, true);
+        $("analysis-status").textContent = "Chưa hoàn tất phân tích. Danh sách review vẫn được giữ lại.";
       }
     } catch (error) {
       if (version === state.version) {
         showFeedback("Chưa phân tích được", error.message || "Kiểm tra kết nối local rồi thử lại.", "ANALYSIS_UNAVAILABLE", true);
+        $("analysis-status").textContent = "Chưa hoàn tất phân tích. Danh sách review vẫn được giữ lại.";
       }
     } finally {
-      setBusy(false);
+      if (version === state.version) {
+        state.phase = "";
+        setBusy(false);
+      }
     }
   }
 
@@ -316,8 +498,25 @@
     clearResult("Đã thay đổi mẫu. Phân tích lại để xem review đúng mẫu.");
   });
   variantInput.addEventListener("change", () => clearResult("Đã thay đổi biến thể. Phân tích lại."));
-  form.addEventListener("submit", analyze);
-  retryButton.addEventListener("click", () => form.requestSubmit());
+  form.addEventListener("submit", loadPreview);
+  submitButton.addEventListener("click", analyze);
+  $("preview-expand").addEventListener("click", togglePreview);
+  $("back-button").addEventListener("click", () => {
+    state.version += 1;
+    state.phase = "";
+    setBusy(false);
+    feedback.hidden = true;
+    setStage("product");
+    setStatus("Chỉnh lại sản phẩm, dòng máy hoặc biến thể rồi tải review lại.");
+    urlInput.focus({ preventScroll: true });
+  });
+  retryButton.addEventListener("click", () => {
+    if (state.stage === "preview" && state.previewData) {
+      analyze();
+    } else {
+      form.requestSubmit();
+    }
+  });
   demoButton.addEventListener("click", () => {
     const listing = state.catalog[0];
     if (!listing) {
@@ -335,7 +534,7 @@
         variantInput.value = "Ốp trong suốt viền đen";
       }
     }
-    clearResult("Đã điền mẫu demo. Bấm Phân tích review để xem kết quả.");
+    clearResult("Đã điền mẫu demo. Tiếp tục để xem review đúng biến thể.");
   });
 
   async function loadCatalog() {

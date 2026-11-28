@@ -238,8 +238,9 @@ class DemoServerTests(unittest.TestCase):
         self.assertEqual(first_result[0].status, 200)
         self.assertEqual(json.loads(answer(json.dumps(DEMO_REQUEST))["output"])["status"], "ok")
 
-    def test_get_rejects_analyze_and_post_rejects_catalog(self):
+    def test_get_rejects_analysis_endpoints_and_post_rejects_catalog(self):
         self.assertEqual(self.request("GET", "/analyze").status, 405)
+        self.assertEqual(self.request("GET", "/preview").status, 405)
         self.assertEqual(self.request("POST", "/catalog", body=b"{}").status, 405)
         for method in ("PUT", "DELETE", "PATCH"):
             with self.subTest(method=method):

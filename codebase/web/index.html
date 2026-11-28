@@ -21,13 +21,19 @@
       <p>Chọn dòng máy và biến thể. Kết quả chỉ dùng review của đúng mẫu, kèm dẫn chứng để bạn tự quyết định.</p>
     </section>
 
-    <div class="workbench">
+    <ol class="progress-steps" aria-label="Các bước đánh giá">
+      <li id="step-product" aria-current="step"><span class="step-number">1</span><span>Sản phẩm</span></li>
+      <li id="step-preview"><span class="step-number">2</span><span>Review khớp mẫu</span></li>
+      <li id="step-result"><span class="step-number">3</span><span>Kết quả</span></li>
+    </ol>
+
+    <div id="workbench" class="workbench" data-stage="product">
       <form id="analyze-form" class="controls" novalidate>
         <div class="field">
           <label for="product-url">Link Shopee</label>
           <input id="product-url" name="product_url" type="url" list="listing-options" autocomplete="off" required aria-describedby="url-help url-error">
           <datalist id="listing-options"></datalist>
-          <p id="url-help" class="field-help">Dùng link fixture cục bộ; demo không truy cập Shopee.</p>
+          <p id="url-help" class="field-help">Dùng link có trong dữ liệu cục bộ; demo không truy cập Shopee.</p>
           <p id="url-error" class="field-error" hidden></p>
         </div>
 
@@ -52,10 +58,33 @@
         </div>
 
         <div class="actions">
-          <button id="analyze-button" class="button button-primary" type="submit">Phân tích review</button>
+          <button id="preview-button" class="button button-primary" type="submit">Xem review khớp mẫu</button>
         </div>
         <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
       </form>
+
+      <section id="preview" class="preview" tabindex="-1" aria-labelledby="preview-title" hidden>
+        <div class="preview-head">
+          <p class="section-label">Bước 2 · Kiểm tra dữ liệu</p>
+          <h2 id="preview-title" tabindex="-1">Review đúng mẫu</h2>
+          <p id="preview-context" class="preview-context"></p>
+          <p id="preview-source" class="preview-source"></p>
+          <p id="preview-coverage" class="preview-coverage"></p>
+        </div>
+        <div class="preview-list-section">
+          <div class="preview-list-heading">
+            <h3>Review sẽ được đưa vào phân tích</h3>
+            <p id="preview-list-note"></p>
+          </div>
+          <div id="preview-list" class="preview-list"></div>
+          <button id="preview-expand" class="text-button" type="button" hidden></button>
+        </div>
+        <p id="analysis-status" class="analysis-status" role="status" aria-live="polite"></p>
+        <div class="preview-actions">
+          <button id="back-button" class="button button-secondary" type="button">Quay lại chọn mẫu</button>
+          <button id="analyze-button" class="button button-primary" type="button">Phân tích review</button>
+        </div>
+      </section>
 
       <section id="result" class="result" tabindex="-1" aria-labelledby="result-title" hidden>
         <div class="result-head">

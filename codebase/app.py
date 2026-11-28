@@ -113,7 +113,7 @@ class _Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlsplit(self.path).path
-        if path == "/analyze":
+        if path in {"/analyze", "/preview"}:
             self._method_not_allowed("POST")
             return
         if path == "/catalog":
