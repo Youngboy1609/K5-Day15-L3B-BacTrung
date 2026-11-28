@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import random
 import re
@@ -215,6 +216,11 @@ class Collector:
         selector = self.cfg["selectors"].get("review_container", ".product-ratings")
         widget = self.page.locator(selector).first
         progress = self.store.get("review_progress", key) or {}
+        review_cap = self.cfg.get("max_reviews_per_product", 100)
+        if not self.cfg.get("all_review_pages"):
+            if len(self.store.product_reviews(key)) >= review_cap:
+                self.store.review_stop(key, "sample_cap_reached", now())
+                return None
         # Older runs stored an encounter count, not an actual page number.
         target = progress.get("next_page", 1)
         last_ids = tuple(progress.get("last_review_ids", []))
@@ -255,6 +261,23 @@ class Collector:
                 break
             seen.add((number, fingerprint))
             previous_ids = fingerprint
+            if not self.cfg.get("all_review_pages"):
+                existing_ids = {
+                    str(row["review_id"]) for row in self.store.product_reviews(key)
+                }
+                remaining = max(0, review_cap - len(existing_ids))
+                selected, new_ids = [], set()
+                for row in rows:
+                    review_id = str(row["review_id"])
+                    if review_id in existing_ids:
+                        selected.append(row)
+                    elif review_id not in new_ids and len(new_ids) < remaining:
+                        selected.append(row)
+                        new_ids.add(review_id)
+                rows = selected
+                if not rows:
+                    self.store.review_stop(key, "sample_cap_reached", now())
+                    return None
             if number and number != target:
                 self.store.ingest({"reviews": rows})
                 # Reach the first unfinished page using only the widget's displayed controls.
@@ -285,6 +308,12 @@ class Collector:
                 saved_rows = [self.store.get("review", row["review_key"]) for row in rows]
                 if block := await self.save_media(products=[], reviews=saved_rows):
                     break
+                if (
+                    not self.cfg.get("all_review_pages")
+                    and len(self.store.product_reviews(key)) >= review_cap
+                ):
+                    self.store.review_stop(key, "sample_cap_reached", now())
+                    return None
                 if limit and (target > limit or unnumbered_pages >= limit):
                     self.store.review_stop(key, "configured_page_limit", now())
                     return None
@@ -435,12 +464,138 @@ class Collector:
             if products is not None and reviews is not None:
                 urls = [r[f"{kind}_url"] for r in self.store.media_links(kind, products, reviews)]
             reason = await download(self.store, lambda: self.network_block or blocker(self.page.url, ""), urls=urls)
+            if kind == "image" and reviews is not None:
+                await self.capture_review_screenshots(reviews)
+            if kind == "video" and reviews is not None:
+                await self.capture_review_video_frames(reviews)
             if reason:
                 self.network_block = reason
                 self.accept_responses = False
                 print(f"Đã dừng tải media: {reason}")
                 return reason
         return None
+
+    async def capture_review_screenshots(self, reviews):
+        if self.page is None:
+            return
+        for review in reviews:
+            image_urls = review.get("image_urls", [])
+            if not image_urls:
+                continue
+            target = None
+            for index, candidate_url in enumerate(image_urls):
+                candidate = self.store.get("image", candidate_url) or {}
+                if candidate.get("status") == "saved" and self.store.file_saved(candidate):
+                    continue
+                if candidate.get("http_status") in {401, 403, 429} or candidate.get("status") in {
+                    "http_401", "http_403", "http_429",
+                }:
+                    continue
+                if candidate.get("status") in {"", "pending", "saved", None}:
+                    continue
+                target = (index, candidate_url, candidate)
+                break
+            if target is None:
+                continue
+            media_index, url, asset = target
+            review_id = str(review.get("review_id") or "")
+            if not review_id.isdigit():
+                continue
+            # Clip to a single image wrapper inside this review, never the page or row.
+            wrappers = self.page.locator(
+                f'[data-cmtid="{review_id}"] .rating-media-list__image-wrapper'
+            )
+            locator = wrappers.first if media_index == 0 else wrappers.nth(media_index)
+            try:
+                if not await locator.count() or not await locator.is_visible():
+                    continue
+                loaded = await locator.evaluate(
+                    "el => Array.from(el.querySelectorAll('img')).some("
+                    "img => img.complete && img.naturalWidth > 0 && img.naturalHeight > 0)"
+                )
+                if not loaded:
+                    continue
+                relative = Path("review_screenshots") / (
+                    hashlib.sha256(review["review_key"].encode("utf-8")).hexdigest() + ".png"
+                )
+                path = self.store.folder / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                await locator.screenshot(path=str(path))
+                if not path.is_file() or path.stat().st_size <= 0:
+                    continue
+                screenshot = {
+                    **asset,
+                    "status": "saved",
+                    "local_path": relative.as_posix(),
+                    "bytes": path.stat().st_size,
+                    "fallback_kind": "rendered_review_image_screenshot",
+                }
+                with self.store.db:
+                    self.store.put("image", url, screenshot)
+                    saved_review = self.store.get("review", review["review_key"]) or review.copy()
+                    saved_review.update(
+                        screenshot_media_path=relative.as_posix(),
+                        screenshot_media_status="saved",
+                        screenshot_media_source="rendered_review_image",
+                    )
+                    self.store.put("review", review["review_key"], saved_review)
+            except (OSError, ValueError, RuntimeError):
+                continue
+
+    async def capture_review_video_frames(self, reviews):
+        if self.page is None:
+            return
+        for review in reviews:
+            for url in review.get("video_urls", []):
+                asset = self.store.get("video", url) or {}
+                if asset.get("status") == "saved" and self.store.file_saved(asset):
+                    continue
+                if asset.get("http_status") in {401, 403, 429} or asset.get("status") in {
+                    "http_401", "http_403", "http_429",
+                }:
+                    continue
+                if asset.get("status") in {"", "pending", "saved", None}:
+                    continue
+                review_id = str(review.get("review_id") or "")
+                if not review_id.isdigit():
+                    continue
+                locator = self.page.locator(f'[data-cmtid="{review_id}"] video').first
+                try:
+                    has_frame = (
+                        await locator.count()
+                        and await locator.is_visible()
+                        and await locator.evaluate(
+                            "el => el.readyState >= 2 && el.videoWidth > 0 && el.videoHeight > 0"
+                        )
+                    )
+                    if not has_frame:
+                        with self.store.db:
+                            self.store.put("video", url, {
+                                **asset,
+                                "status": "not_assessed",
+                                "source_status": asset.get("status"),
+                                "fallback_kind": "no_visible_video_frame",
+                            })
+                        continue
+                    relative = Path("review_video_frames") / (
+                        hashlib.sha256(review["review_key"].encode("utf-8")).hexdigest() + ".png"
+                    )
+                    path = self.store.folder / relative
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    await locator.screenshot(path=str(path))
+                    if not path.is_file() or path.stat().st_size <= 0:
+                        continue
+                    with self.store.db:
+                        self.store.put("video", url, {
+                            **asset,
+                            "status": "frame_only",
+                            "local_path": relative.as_posix(),
+                            "bytes": path.stat().st_size,
+                            "fallback_kind": "video_frame_screenshot",
+                            "analysis_note": "One visible frame only; no inference about motion or audio.",
+                        })
+                except (OSError, ValueError, RuntimeError):
+                    continue
 
     async def console(self):
         print("\nLệnh: run | capture | retry | stats | export | quit")

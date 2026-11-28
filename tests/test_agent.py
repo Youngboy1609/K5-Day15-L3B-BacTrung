@@ -37,7 +37,8 @@ class AgentTests(unittest.TestCase):
         self.assertTrue(result["evidence"])
         self.assertTrue(all(item["review_id"].startswith("R") for item in result["evidence"]))
         self.assertIn("R002", {item["review_id"] for item in result["evidence"]})
-        self.assertIn("chưa được phân tích", result["media_note"].casefold())
+        self.assertIn("mock", result["media_note"].casefold())
+        self.assertIn("không được phân tích", result["media_note"].casefold())
         r004 = next(item for item in result["review_assessments"] if item["review_id"] == "R004")
         self.assertEqual(r004["sentiment"], "negative")
         r002 = next(item for item in result["review_assessments"] if item["review_id"] == "R002")
@@ -142,6 +143,9 @@ class AgentTests(unittest.TestCase):
         judge_input = json.loads(mocked_call.call_args.args[1])
         self.assertTrue(judge_input["reviews"])
         self.assertTrue(all("helpful_count" not in review for review in judge_input["reviews"]))
+        image_payloads = mocked_call.call_args.kwargs["images"]
+        self.assertTrue(image_payloads)
+        self.assertTrue(all(image["review_id"] for image in image_payloads))
 
     def test_benchmark_has_minimum_size_and_one_third_user_sourced_cases(self):
         with open(os.path.join(ROOT, "eval", "benchmark.csv"), encoding="utf-8-sig", newline="") as source:
@@ -158,6 +162,10 @@ class AgentTests(unittest.TestCase):
             "B01": "ok", "B02": "ok", "B03": "ok", "B04": "ok",
             "B05": "error", "B06": "needs_input", "B07": "error",
             "B08": "error", "B09": "error", "B10": "ok",
+            "B11": "ok", "B12": "ok", "B13": "ok", "B14": "needs_input",
+            "B15": "ok", "B16": "ok", "B17": "ok", "B18": "ok",
+            "B19": "error", "B20": "error", "B21": "needs_input",
+            "B22": "needs_input", "B23": "error", "B24": "error",
         }
         for row in rows:
             with self.subTest(benchmark=row["id"]):

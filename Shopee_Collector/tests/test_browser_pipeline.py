@@ -192,6 +192,183 @@ class PipelineTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.store.get("review_progress", key)["stop_reason"], "end_of_pagination_ui")
         self.assertEqual(len(self.store.rows("review")), 2)
 
+    async def test_review_cap_clips_last_observed_page_at_100_rows(self):
+        url, key = "https://shopee.vn/product/1/2", "1:2"
+        self.c.cfg["max_reviews_per_product"] = 100
+        self.c.cfg["all_review_pages"] = False
+        existing = [
+            {"review_key": f"{key}:{i}", "review_id": str(i), "product_key": key}
+            for i in range(1, 99)
+        ]
+        self.store.ingest({"reviews": existing})
+        view = {
+            "url": url,
+            "name": "Ốp lưng",
+            "review_page": 1,
+            "reviews": [{"id": str(i), "comment": f"Review {i}", "rating": 5}
+                        for i in range(99, 105)],
+        }
+        self.c.page = MagicMock(url=url)
+        self.c.page.evaluate = AsyncMock(return_value=view)
+        widget = self.c.page.locator.return_value.first
+        widget.count = AsyncMock(return_value=1)
+        widget.scroll_into_view_if_needed = AsyncMock()
+        self.c.settle = AsyncMock(return_value=None)
+        self.c.save_media = AsyncMock(return_value=None)
+        self.c.next_visible = AsyncMock(return_value=True)
+
+        self.assertIsNone(await self.c.collect_reviews())
+
+        reviews = self.store.product_reviews(key)
+        self.assertEqual(len(reviews), 100)
+        self.assertEqual({r["review_id"] for r in reviews} & {"99", "100", "101", "102", "103", "104"},
+                         {"99", "100"})
+        self.assertEqual(self.store.get("review_progress", key)["stop_reason"], "sample_cap_reached")
+        self.c.next_visible.assert_not_awaited()
+
+    async def test_failed_image_download_can_use_only_a_loaded_review_image_screenshot(self):
+        from pathlib import Path
+
+        review = {
+            "review_key": "1:2:8",
+            "review_id": "8",
+            "product_key": "1:2",
+            "image_urls": ["https://down-vn.img.susercontent.com/file/abcdefghijkl"],
+        }
+        self.store.ingest({"reviews": [review]})
+        with self.store.db:
+            self.store.put("image", review["image_urls"][0], {"status": "download_error"})
+
+        image = MagicMock()
+        image.count = AsyncMock(return_value=1)
+        image.is_visible = AsyncMock(return_value=True)
+        image.evaluate = AsyncMock(return_value=True)
+
+        async def save_screenshot(path):
+            Path(path).write_bytes(b"synthetic screenshot")
+
+        image.screenshot = AsyncMock(side_effect=save_screenshot)
+        self.c.page = MagicMock()
+        self.c.page.locator.return_value.first = image
+
+        await self.c.capture_review_screenshots([review])
+
+        saved = self.store.get("review", "1:2:8")
+        self.assertEqual(saved.get("screenshot_media_status"), "saved")
+        self.assertTrue((Path(self.tmp.name) / saved.get("screenshot_media_path", "missing")).is_file())
+        manifest = self.store.media_manifest("image", [], [saved])
+        self.assertEqual(manifest[0]["fallback_kind"], "rendered_review_image_screenshot")
+        self.assertTrue(self.store.file_saved(manifest[0]))
+        image.screenshot.assert_awaited_once()
+
+    async def test_screenshot_fallback_does_not_run_after_access_denied(self):
+        review = {
+            "review_key": "1:2:9",
+            "review_id": "9",
+            "product_key": "1:2",
+            "image_urls": ["https://down-vn.img.susercontent.com/file/abcdefghijkl"],
+        }
+        self.store.ingest({"reviews": [review]})
+        with self.store.db:
+            self.store.put("image", review["image_urls"][0],
+                           {"status": "http_403", "http_status": 403})
+        self.c.page = MagicMock()
+
+        await self.c.capture_review_screenshots([review])
+
+        self.c.page.locator.assert_not_called()
+        self.assertIsNone(self.store.get("review", "1:2:9").get("screenshot_media_path"))
+
+    async def test_screenshot_fallback_targets_failed_image_after_saved_image(self):
+        from pathlib import Path
+
+        review = {
+            "review_key": "1:2:10",
+            "review_id": "10",
+            "product_key": "1:2",
+            "image_urls": [
+                "https://down-vn.img.susercontent.com/file/first",
+                "https://down-vn.img.susercontent.com/file/second",
+            ],
+        }
+        self.store.ingest({"reviews": [review]})
+        first_path = Path(self.tmp.name) / "first.png"
+        first_path.write_bytes(b"already saved")
+        with self.store.db:
+            self.store.put("image", review["image_urls"][0], {
+                "status": "saved", "local_path": "first.png", "bytes": len(b"already saved"),
+            })
+            self.store.put("image", review["image_urls"][1], {"status": "download_error"})
+        image = MagicMock()
+        image.count = AsyncMock(return_value=1)
+        image.is_visible = AsyncMock(return_value=True)
+        image.evaluate = AsyncMock(return_value=True)
+        image.screenshot = AsyncMock()
+        wrappers = MagicMock()
+        wrappers.nth.return_value = image
+        self.c.page = MagicMock()
+        self.c.page.locator.return_value = wrappers
+
+        await self.c.capture_review_screenshots([review])
+
+        wrappers.nth.assert_called_once_with(1)
+        image.screenshot.assert_awaited_once()
+
+    async def test_visible_review_video_frame_is_saved_as_frame_only(self):
+        from pathlib import Path
+
+        review = {
+            "review_key": "1:2:11",
+            "review_id": "11",
+            "product_key": "1:2",
+            "video_urls": ["https://video.example/review.mp4"],
+        }
+        self.store.ingest({"reviews": [review]})
+        with self.store.db:
+            self.store.put("video", review["video_urls"][0], {"status": "download_error"})
+        video = MagicMock()
+        video.count = AsyncMock(return_value=1)
+        video.is_visible = AsyncMock(return_value=True)
+        video.evaluate = AsyncMock(return_value=True)
+
+        async def save_screenshot(path):
+            Path(path).write_bytes(b"synthetic video frame")
+
+        video.screenshot = AsyncMock(side_effect=save_screenshot)
+        self.c.page = MagicMock()
+        self.c.page.locator.return_value.first = video
+
+        await self.c.capture_review_video_frames([review])
+
+        manifest = self.store.media_manifest("video", [], [review])
+        self.assertEqual(manifest[0]["status"], "frame_only")
+        self.assertEqual(manifest[0]["fallback_kind"], "video_frame_screenshot")
+        self.assertTrue((Path(self.tmp.name) / manifest[0]["local_path"]).is_file())
+        video.screenshot.assert_awaited_once()
+
+    async def test_unloaded_review_video_is_not_screenshotted(self):
+        review = {
+            "review_key": "1:2:12",
+            "review_id": "12",
+            "product_key": "1:2",
+            "video_urls": ["https://video.example/unloaded.mp4"],
+        }
+        self.store.ingest({"reviews": [review]})
+        with self.store.db:
+            self.store.put("video", review["video_urls"][0], {"status": "download_error"})
+        video = MagicMock()
+        video.count = AsyncMock(return_value=1)
+        video.is_visible = AsyncMock(return_value=True)
+        video.evaluate = AsyncMock(return_value=False)
+        video.screenshot = AsyncMock()
+        self.c.page = MagicMock()
+        self.c.page.locator.return_value.first = video
+
+        await self.c.capture_review_video_frames([review])
+
+        video.screenshot.assert_not_awaited()
+        self.assertEqual(self.store.media_manifest("video", [], [review])[0]["status"], "not_assessed")
+
     async def test_complete_listing_product_skips_navigation(self):
         self.store.ingest({"products": [{
             "product_key": "1:2", "shop_id": "1", "item_id": "2", "name": "test",

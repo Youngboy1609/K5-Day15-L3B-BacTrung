@@ -250,6 +250,8 @@ class Store:
             self.put("run_settings", "scope", {
                 "seed_product_keys": [":".join(ids) for url in config.get("seeds", []) if (ids := product_ids(url))],
                 "required_fields": config.get("detail_required_fields", []),
+                "max_reviews_per_product": config.get("max_reviews_per_product", 100),
+                "all_review_pages": bool(config.get("all_review_pages")),
             })
 
     def report(self):
@@ -273,6 +275,7 @@ class Store:
                 rows = [r for r in manifest if r["role"] == role]
                 media[f"{role}_{kind}"] = {"observed_urls": len({r[f"{kind}_url"] for r in rows}),
                                            "saved_files": len({r["local_path"] for r in rows if r["status"] == "saved"}),
+                                           "frame_only_files": len({r["local_path"] for r in rows if r["status"] == "frame_only"}),
                                            "products_with_files": len({r["product_key"] for r in rows if r["status"] == "saved"})}
         with_reviews = {r["product_key"] for r in reviews}
         missing = Counter()
@@ -285,6 +288,26 @@ class Store:
                     missing[field] += 1
             if p["product_key"] not in with_reviews:
                 missing["reviews_not_observed"] += 1
+        sampling_reviews = {}
+        for review in reviews:
+            sampling_reviews.setdefault(review["product_key"], []).append(review)
+        review_sampling = {}
+        progress_by_key = {
+            row["product_key"]: row for row in self.rows("review_progress")
+        }
+        for key in sorted(set(sampling_reviews) | set(progress_by_key)):
+            rows = sampling_reviews.get(key, [])
+            progress = progress_by_key.get(key, {})
+            star_counts = Counter(
+                str(row["rating"]) for row in rows if row.get("rating") is not None
+            )
+            review_sampling[key] = {
+                "observed_count": len(rows),
+                "cap": None if scope.get("all_review_pages") else scope.get("max_reviews_per_product", 100),
+                "observed_by_star": dict(sorted(star_counts.items())),
+                "stop_reason": progress.get("stop_reason", "not_stopped"),
+                "representativeness": "unknown_observed_subset_only",
+            }
         return {
             "products_observed": len(products), "reviews_observed": len(reviews),
             "variants_observed": sum(len(p.get("variants") or []) for p in products),
@@ -301,6 +324,7 @@ class Store:
             "reviews_empty_at_source": sum(r.get("content_status") == "empty_at_source" for r in reviews),
             "reviews_text_unknown": sum(not r.get("content") and r.get("content_status") != "empty_at_source" for r in reviews),
             "review_pagination": self.rows("review_progress"),
+            "review_sampling": review_sampling,
             "queue_status": dict(self.db.execute("SELECT status,COUNT(*) FROM queue GROUP BY status").fetchall()),
             "missing_fields_count": dict(missing),
             "classification_methods": dict(Counter(p.get("classification_method", "unknown") for p in products)),
@@ -346,13 +370,14 @@ class Store:
             "variants": ["product_key", "variant_id", "variant_name", "options", "price", "price_raw",
                          "price_divisor", "currency", "stock", "observed_at"],
             "reviews": ["review_key", "review_id", "product_key", "shop_id", "item_id", "rating", "content",
-                        "created_at_raw", "variant_name", "observed_at", "source_url", "created_at_utc", "created_at_display",
+                        "created_at_raw", "variant_name", "phone_model", "case_variant", "observed_at",
+                        "source_url", "created_at_utc", "created_at_display",
                         "content_status", "like_count", "dislike_count", "shop_reply_content", "shop_reply_created_at_raw",
                         "shop_reply_created_at_utc", "image_urls", "video_urls"],
             "images": ["owner_kind", "role", "product_key", "review_key", "image_url", "status", "local_path",
-                       "bytes", "http_status", "error"],
+                       "bytes", "http_status", "error", "fallback_kind"],
             "videos": ["owner_kind", "role", "product_key", "review_key", "video_url", "status", "local_path",
-                       "bytes", "http_status", "error"],
+                       "bytes", "http_status", "error", "fallback_kind", "source_status", "analysis_note"],
             "shops": ["shop_id", "shop_name", "shop_username", "observed_at"],
             "categories": ["category_id", "name"],
         }

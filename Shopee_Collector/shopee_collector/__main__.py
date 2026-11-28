@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 def load_config(path):
     cfg = json.loads(Path(path).read_text(encoding="utf-8-sig"))
     for k in ("max_pages_per_run", "max_products_per_run", "max_queue_size", "scroll_steps",
-              "listing_pages_per_seed", "review_pages_per_product"):
+              "listing_pages_per_seed", "review_pages_per_product", "max_reviews_per_product"):
         if not isinstance(cfg[k], int) or cfg[k] < 1:
             raise ValueError(f"{k} must be a positive integer")
     if cfg["delay_ms"] < 3000 or cfg["settle_ms"] < 500:
