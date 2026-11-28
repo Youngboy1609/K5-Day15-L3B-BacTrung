@@ -40,10 +40,12 @@ Kiểm tra Chrome đang nghe cổng CDP bằng lệnh sau. Kết quả có dạn
 Tại PowerShell, vẫn trong `Shopee_Collector`, chạy:
 
 ```powershell
-.\.venv\Scripts\python.exe -m shopee_collector run --cdp http://127.0.0.1:9222 --output output/test_3_san_pham --all-reviews
+.\.venv\Scripts\python.exe -m shopee_collector run --cdp http://127.0.0.1:9222 --output output/test_3_san_pham
 ```
 
-Khi thấy dấu nhắc `shopee>`, nhập `run` rồi bấm Enter để bắt đầu xử lý các link trong `config/settings.json`. Cờ `--all-reviews` đọc tiếp các trang đánh giá qua nút phân trang đang hiển thị. Công cụ dừng khi hết trang, không còn tiến triển hoặc gặp tín hiệu chặn. Số review thu được là số đã quan sát trong phiên.
+Mặc định collector dừng ở tối đa 100 review quan sát được cho mỗi sản phẩm; `review_pages_per_product` giới hạn số trang. Đây không phải mẫu đảm bảo đại diện cho toàn bộ review. Khi thấy dấu nhắc `shopee>`, nhập `run` rồi bấm Enter để xử lý các link trong `config/settings.json`.
+
+Cờ `--all-reviews` là tùy chọn chủ động bỏ qua giới hạn review và đọc tiếp các trang đang hiển thị. Chỉ dùng khi có lý do phù hợp; nó vẫn không đảm bảo lấy được toàn bộ review và không được dùng trong demo CP3, vốn chạy trên fixture cục bộ.
 
 | Lệnh tại `shopee>` | Dùng khi |
 |---|---|

@@ -59,6 +59,18 @@ class ProductDetailTests(unittest.TestCase):
         self.assertEqual(p["variants"], [])
         self.assertEqual(p["variant_options"], tiers)
 
+    def test_review_variant_fields_are_exported_only_when_explicit(self):
+        view = {**VIEW, "reviews": [{
+            "id": "7", "phone_model": "iPhone 15 Pro", "case_variant": "Ốp viền đen",
+        }]}
+        review = page_bundle(view, URL, "now")["reviews"][0]
+        self.assertEqual(review.get("phone_model"), "iPhone 15 Pro")
+        self.assertEqual(review.get("case_variant"), "Ốp viền đen")
+
+        untagged = page_bundle(VIEW, URL, "now")["reviews"][0]
+        self.assertIsNone(untagged["phone_model"])
+        self.assertIsNone(untagged["case_variant"])
+
     def test_retry_after_verification_and_refresh(self):
         with tempfile.TemporaryDirectory() as folder:
             store = Store(folder)

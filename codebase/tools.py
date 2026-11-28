@@ -1,4 +1,4 @@
-"""Read-only local fixture lookup for the Shopee phone-case CP2 demo."""
+"""Read-only lookup for the latest local collector export or labeled fixture fallback."""
 import json
 import os
 import random
@@ -6,10 +6,11 @@ from collections import defaultdict
 from urllib.parse import urlsplit
 
 from tracing import tool
+from collector_data import load_latest_collector_dataset
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH = os.path.join(ROOT, "data", "reviews.json")
-MAX_REVIEWS = 12
+MAX_REVIEWS = 100
 ALLOWED_HOSTS = {"shopee.vn", "www.shopee.vn"}
 
 
@@ -32,12 +33,20 @@ def _valid_shopee_url(value):
 
 
 def _load_products():
+    collected = load_latest_collector_dataset()
+    if collected is not None:
+        return collected, collected["products"]
     with open(DATA_PATH, encoding="utf-8") as source:
         data = json.load(source)
     products = data.get("products")
     if not isinstance(products, list):
         raise ValueError("data/reviews.json must contain a products list")
     return data, products
+
+
+def load_product_dataset():
+    """Return the active local source and registered products for the app."""
+    return _load_products()
 
 
 def _sample_by_stars(reviews, limit=MAX_REVIEWS, seed=42):
@@ -89,7 +98,7 @@ def get_product_reviews(product_url, phone_model, case_variant, limit=MAX_REVIEW
     """Look up a registered local listing and exact-model/variant reviews.
     Input: Shopee URL, phone model, case variant, sample limit and seed.
     Output: listing metadata, matching reviews and counts, or typed error.
-    External side effect: none; reads only the local synthetic fixture.
+    External side effect: none; reads local collector exports or the synthetic fixture.
     """
     if not _valid_shopee_url(product_url):
         return {"status": "error", "code": "INVALID_INPUT", "message": "Hãy nhập URL HTTPS của shopee.vn."}
@@ -98,7 +107,7 @@ def get_product_reviews(product_url, phone_model, case_variant, limit=MAX_REVIEW
     if not isinstance(case_variant, str) or not case_variant.strip() or len(case_variant) > 120:
         return {"status": "error", "code": "INVALID_INPUT", "message": "Cần chọn biến thể ốp."}
     if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= MAX_REVIEWS:
-        return {"status": "error", "code": "INVALID_INPUT", "message": "Số review mỗi lần phải từ 1 đến 12."}
+        return {"status": "error", "code": "INVALID_INPUT", "message": "Số review mỗi lần phải từ 1 đến 100."}
     if not isinstance(seed, int) or isinstance(seed, bool):
         return {"status": "error", "code": "INVALID_INPUT", "message": "Seed lấy mẫu phải là số nguyên."}
 
@@ -155,4 +164,8 @@ def get_product_reviews(product_url, phone_model, case_variant, limit=MAX_REVIEW
         "sample_limit": min(limit, MAX_REVIEWS),
         "sample_seed": seed,
         "reviews": sampled,
+        "source_type": product.get("source_type", data.get("source_type", "fixture")),
+        "source_label": product.get("source_label", data.get("source_label", "Dữ liệu fixture")),
+        "media_root": product.get("media_root", data.get("media_root")),
+        "sampling": product.get("sampling", data.get("sampling", {})),
     }

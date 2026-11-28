@@ -24,7 +24,9 @@ Không dùng dữ liệu khảo sát làm đầu vào cho mock hoặc model. Tr�
 | Số dòng / số đoạn | 14 review synthetic trên 2 listing; trong đó có review cố tình thuộc dòng máy/biến thể khác để kiểm tra không trộn |
 | Phiên bản / ngày lấy | `cp2-fixture-1`; tạo cho CP2 |
 | Nhãn | `synthetic` |
-| Giới hạn | Không lấy từ Shopee, chưa được thành viên kiểm tay, không đại diện người mua; chưa có ảnh/video/audio; không phải bằng chứng pain; `helpful_count` cũng là số synthetic, không phải lượt vote thu thập được |
+| Giới hạn | Không lấy từ Shopee, chưa được thành viên kiểm tay, không đại diện người mua; không phải bằng chứng pain; `helpful_count` cũng là số synthetic, không phải lượt vote thu thập được |
+
+**Media CP3:** R004 và R101 có ảnh PNG synthetic cục bộ trong `data/media/`; R004 có thêm một frame trích từ video synthetic 2 giây được tạo từ ảnh fixture (file nguồn `R004-synthetic-video.mp4`). Các media này không phải ảnh/video Shopee và frame chỉ đại diện cho một hình tĩnh, không cho biết chuyển động hay âm thanh. Nếu collector gặp CAPTCHA, người dùng tự xác nhận rồi chạy `retry`; nếu media bị chặn, workflow dùng text đã có và ghi rõ media chưa được đánh giá.
 
 **Cách sinh/kiểm:** nội dung review và `helpful_count` do coding assistant soạn thủ công để minh họa công thức, không lấy review/vote thật và không dùng seed để sinh. Seed 42 chỉ điều khiển lấy mẫu nếu số review vượt giới hạn. Minh cần xác nhận/kiểm tay fixture trước khi demo. Khi tích hợp dữ liệu thật, chỉ điền count nếu nguồn Shopee cung cấp; thiếu thì để null/không có.
 

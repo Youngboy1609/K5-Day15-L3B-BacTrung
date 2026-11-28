@@ -19,6 +19,8 @@ Nối model thật: điền .env (chép từ .env.example), rồi viết nhánh 
 """
 import os
 import json
+import urllib.error
+import urllib.request
 
 from tracing import model_call
 
@@ -42,6 +44,8 @@ load_env()
 MODEL_PROVIDER = (os.environ.get("MODEL_PROVIDER") or "fake").strip().lower()
 MODEL_NAME = (os.environ.get("MODEL_NAME") or "").strip()
 API_KEY = (os.environ.get("API_KEY") or "").strip()
+if os.environ.get("BACTRUNG_FAKE_FOR_TESTS"):
+    MODEL_PROVIDER = "fake"
 
 
 POSITIVE_PHRASES = (
@@ -60,7 +64,7 @@ SPECIFIC_DETAILS = (
 
 
 def _mock_judge(user):
-    """Deterministic mock classifier; not an AI result and does not inspect media."""
+    """Deterministic mock classifier; it is not an AI result and ignores media."""
     try:
         payload = json.loads(user)
         reviews = payload.get("reviews", [])
@@ -106,7 +110,7 @@ def _mock_judge(user):
 
 
 @model_call
-def call_model(system: str, user: str) -> dict:
+def call_model(system: str, user: str, images=()) -> dict:
     if MODEL_PROVIDER == "fake":
         return {
             "text": _mock_judge(user),
@@ -114,9 +118,57 @@ def call_model(system: str, user: str) -> dict:
             "tokens_in": 0,
             "tokens_out": 0,
         }
+    if MODEL_PROVIDER != "openai":
+        raise NotImplementedError("CP3 demo supports MODEL_PROVIDER=openai or fake")
+    if not MODEL_NAME or not API_KEY:
+        raise RuntimeError("Chưa điền MODEL_NAME/API_KEY trong .env")
 
-    # NHÓM VIẾT: gọi model thật ở đây (theo MODEL_PROVIDER, MODEL_NAME, API_KEY) rồi trả đúng 4 khoá.
-    # Ví dụ chép được cho từng nhà cung cấp: docs/connect-model.md mục 2.
-    raise NotImplementedError(
-        "chưa viết phần gọi model thật cho MODEL_PROVIDER=%s trong codebase/ai.py — xem docs/connect-model.md"
-        % MODEL_PROVIDER)
+    content = [{"type": "text", "text": user}]
+    for index, image in enumerate(images, start=1):
+        if isinstance(image, dict):
+            review_id = image.get("review_id", "unknown")
+            image_index = image.get("image_index", index)
+            image_url = image.get("data_url")
+            if image.get("media_type") == "video_frame":
+                description = (
+                    "One still frame only from a review video; do not infer motion, "
+                    "events across time, or audio."
+                )
+            else:
+                description = "Review image."
+            content.append({
+                "type": "text",
+                "text": (
+                    f"Image index {image_index}; belongs only to review_id {review_id}. "
+                    f"{description} {image.get('analysis_note') or ''}"
+                ).strip(),
+            })
+        else:
+            image_url = image
+        content.append({"type": "image_url", "image_url": {"url": image_url}})
+    body = {
+        "model": MODEL_NAME,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": content},
+        ],
+        "response_format": {"type": "json_object"},
+    }
+    request = urllib.request.Request(
+        "https://api.openai.com/v1/chat/completions",
+        data=json.dumps(body).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json", "Authorization": "Bearer " + API_KEY},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as error:
+        raise RuntimeError("OpenAI HTTP %d" % error.code) from None
+    usage = data["usage"]
+    return {
+        "text": data["choices"][0]["message"].get("content") or json.dumps(data["choices"][0]["message"].get("refusal") or ""),
+        "model": MODEL_NAME,
+        "tokens_in": int(usage["prompt_tokens"]),
+        "tokens_out": int(usage["completion_tokens"]),
+    }

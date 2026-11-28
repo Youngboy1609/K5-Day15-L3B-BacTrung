@@ -169,6 +169,10 @@ def videos_from(node):
                                                   "video_info", "video_info_list", "video_list")))
 
 
+def explicit_variant(value):
+    return clean(value) if isinstance(value, str) and clean(value) else None
+
+
 def page_bundle(view, expected_url, observed_at, rules=()):
     ids = product_ids(expected_url)
     if not view or not ids or product_ids(view.get("url") or "") != ids or not clean(view.get("name")):
@@ -213,6 +217,8 @@ def page_bundle(view, expected_url, observed_at, rules=()):
         if rid:
             reviews.append({"review_key": f"{p['product_key']}:{rid}", "product_key": p["product_key"],
                             "review_id": rid, "shop_id": ids[0], "item_id": ids[1],
+                            "phone_model": explicit_variant(row.get("phone_model")),
+                            "case_variant": explicit_variant(row.get("case_variant")),
                             "created_at_display": row.get("time"), "like_count": integer(row.get("like")),
                             "dislike_count": integer(row.get("dislike")), "shop_reply_content": row.get("reply") or None,
                             "image_urls": image_urls(row.get("images")), "video_urls": video_urls(row.get("videos")),
@@ -329,6 +335,8 @@ def extract_payload(payload, *, divisor=100000, rules=(), source_url="", observe
                 continue
             reviews.append({"review_key": f"{review_sid}:{iid}:{rid}", "review_id": rid,
                             "product_key": f"{review_sid}:{iid}", "shop_id": review_sid, "item_id": iid,
+                            "phone_model": explicit_variant(node.get("phone_model")),
+                            "case_variant": explicit_variant(node.get("case_variant")),
                             "rating": node.get("rating_star"), "content": node.get("comment"),
                             "content_status": ("with_text" if clean(node.get("comment")) else
                                                "empty_at_source" if isinstance(node.get("comment"), str) else None),

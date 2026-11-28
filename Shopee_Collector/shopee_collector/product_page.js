@@ -60,6 +60,8 @@
         const like = text(row.querySelector(".shopee-product-rating__like-count,[data-testid='review-like-count']"));
         const dislike = text(row.querySelector("[data-testid='review-dislike-count']"));
         return {id: row.dataset.cmtid, time, like, dislike,
+            phone_model: row.dataset.phoneModel || null,
+            case_variant: row.dataset.caseVariant || null,
             reply: text(row.querySelector(".shopee-product-rating__reply-content,[data-testid='seller-reply-content']")),
             images: pictures.flatMap(e => all(e, "picture img").map(img)),
             videos: videos(media), comment: text(row.querySelector(".YNedDV,.shopee-product-rating__content"))};

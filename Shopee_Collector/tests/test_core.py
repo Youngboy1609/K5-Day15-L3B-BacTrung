@@ -158,6 +158,25 @@ class StorageTests(unittest.TestCase):
         self.assertTrue((Path(self.tmp.name) / "products.csv").read_bytes().startswith(b"\xef\xbb\xbf"))
         self.assertIn("unknown", report["coverage"])
 
+    def test_coverage_reports_observed_sample_without_claiming_population_representation(self):
+        self.store.record_scope({
+            "max_reviews_per_product": 100,
+            "all_review_pages": False,
+        })
+        self.store.ingest({"reviews": [
+            {"review_key": f"1:2:{i}", "review_id": str(i), "product_key": "1:2",
+             "rating": rating}
+            for i, rating in ((1, 5), (2, 1))
+        ]})
+        self.store.review_stop("1:2", "sample_cap_reached", "TEST_TIME")
+
+        sampling = self.store.report()["review_sampling"]["1:2"]
+        self.assertEqual(sampling["observed_count"], 2)
+        self.assertEqual(sampling["cap"], 100)
+        self.assertEqual(sampling["observed_by_star"], {"1": 1, "5": 1})
+        self.assertEqual(sampling["representativeness"], "unknown_observed_subset_only")
+        self.assertEqual(sampling["stop_reason"], "sample_cap_reached")
+
     def test_empty_export_does_not_make_fake_data(self):
         self.assertEqual(self.store.export()["products_observed"], 0)
         with open(Path(self.tmp.name) / "products.csv", encoding="utf-8-sig", newline="") as f:
