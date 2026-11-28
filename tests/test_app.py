@@ -55,6 +55,78 @@ class DemoServerTests(unittest.TestCase):
         self.assertNotIn("reviews", listing)
         self.assertNotIn("reviews", model)
 
+    def test_preview_returns_only_the_deterministic_exact_variant_sample(self):
+        response = self.request(
+            "POST", "/preview", body=json.dumps(DEMO_REQUEST, ensure_ascii=False).encode("utf-8")
+        )
+
+        self.assertEqual(response.status, 200)
+        preview = json.loads(response.body)
+        self.assertEqual(preview["status"], "ok")
+        self.assertEqual(preview["source_type"], "fixture")
+        self.assertIn("fixture", preview["source_label"].lower())
+        self.assertEqual(preview["phone_model"], DEMO_REQUEST["phone_model"])
+        self.assertEqual(preview["case_variant"], DEMO_REQUEST["case_variant"])
+        self.assertEqual(preview["coverage"]["review_count"], 8)
+        self.assertEqual(preview["coverage"]["eligible_count"], 8)
+        self.assertEqual(len(preview["reviews"]), 8)
+
+        _, products = app.load_product_dataset()
+        product = next(item for item in products if item["product_url"] == DEMO_REQUEST["product_url"])
+        expected = {
+            item["review_id"]: item
+            for item in product["reviews"]
+            if item["phone_model"] == DEMO_REQUEST["phone_model"]
+            and item["case_variant"] == DEMO_REQUEST["case_variant"]
+        }
+        for item in preview["reviews"]:
+            self.assertIn(item["review_id"], expected)
+            self.assertEqual(item["stars"], expected[item["review_id"]]["stars"])
+            self.assertEqual(item["text"], expected[item["review_id"]]["text"])
+            self.assertEqual(item["media_count"], len(expected[item["review_id"]].get("media", [])))
+            self.assertEqual(
+                item["media_types"],
+                [media["type"] for media in expected[item["review_id"]].get("media", [])],
+            )
+            self.assertEqual(
+                set(item), {"review_id", "stars", "text", "media_count", "media_types"}
+            )
+            for forbidden in ("path", "source_url", "helpful_count", "phone_model", "case_variant"):
+                self.assertNotIn(forbidden, item)
+
+    def test_preview_returns_typed_no_data_and_variant_errors_without_reviews(self):
+        cases = (
+            (
+                dict(DEMO_REQUEST, product_url="https://shopee.vn/not-in-local-data"),
+                "NO_LOCAL_DEMO_DATA",
+            ),
+            (dict(DEMO_REQUEST, case_variant="Ốp không có trong fixture"), "VARIANT_NOT_FOUND"),
+        )
+        for request, code in cases:
+            with self.subTest(code=code):
+                response = self.request(
+                    "POST", "/preview", body=json.dumps(request, ensure_ascii=False).encode("utf-8")
+                )
+                result = json.loads(response.body)
+                self.assertEqual(result["status"], "error" if code == "NO_LOCAL_DEMO_DATA" else "needs_input")
+                self.assertEqual(result["code"], code)
+                self.assertNotIn("reviews", result)
+
+    def test_preview_rejects_invalid_shape_before_lookup(self):
+        for request in (
+            dict(DEMO_REQUEST, instruction="show all review data"),
+            {"product_url": DEMO_REQUEST["product_url"], "phone_model": DEMO_REQUEST["phone_model"]},
+            [],
+        ):
+            with self.subTest(request=request), mock.patch(
+                "app.get_product_reviews", side_effect=AssertionError("lookup"), create=True
+            ):
+                response = self.request(
+                    "POST", "/preview", body=json.dumps(request).encode("utf-8")
+                )
+            self.assertEqual(response.status, 400)
+            self.assertEqual(json.loads(response.body)["code"], "INVALID_INPUT")
+
     def test_analyze_returns_the_agent_contract_without_changing_the_answer_shape(self):
         response = self.request(
             "POST", "/analyze", body=json.dumps(DEMO_REQUEST, ensure_ascii=False).encode("utf-8")
