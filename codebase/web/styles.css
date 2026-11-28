@@ -631,14 +631,14 @@ select:disabled {
   background: var(--color-paper);
 }
 
-.evidence-section h3 {
-  margin-bottom: var(--space-md);
-}
-
 .result h3 {
   margin: 0 0 var(--space-sm);
   font-size: 1rem;
   line-height: 1.3;
+}
+
+.result .evidence-section h3 {
+  margin-bottom: var(--space-md);
 }
 
 .evidence-list {
@@ -822,7 +822,7 @@ select:disabled {
 
   .result-layout > .evidence-section {
     border-top: 0;
-    margin-top: var(--space-lg);
+    margin-top: 0;
     padding-top: var(--space-md);
   }
 }
