@@ -189,6 +189,7 @@ def page_bundle(view, expected_url, observed_at, rules=()):
                             "rating_count": int(count) if count.isdecimal() else None}}
     p = normalize_item(item, 1, rules, canonical(expected_url), observed_at)
     p.update(source_kind="product_page", sold_display=view.get("sold_display"),
+             star_counts=view.get("star_counts") or {},
              description_image_urls=image_urls(view.get("description_images")),
              price_display_text=view.get("price_text"), rating_count_display=count)
     if view.get("description_section_seen"):
@@ -216,7 +217,7 @@ def page_bundle(view, expected_url, observed_at, rules=()):
         rid = ident(row.get("id"))
         if rid:
             reviews.append({"review_key": f"{p['product_key']}:{rid}", "product_key": p["product_key"],
-                            "review_id": rid, "shop_id": ids[0], "item_id": ids[1],
+                            "review_id": rid, "shop_id": ids[0], "item_id": ids[1], "rating": row.get("rating"),
                             "phone_model": explicit_variant(row.get("phone_model")),
                             "case_variant": explicit_variant(row.get("case_variant")),
                             "created_at_display": row.get("time"), "like_count": integer(row.get("like")),
@@ -255,6 +256,11 @@ def normalize_item(item, divisor, rules, source_url, observed_at):
                              "currency": item.get("currency") or "VND",
                              "price_divisor": divisor})
     rating = item.get("item_rating") or {}
+    counts = rating.get("rating_count")
+    star_counts = {}
+    if (isinstance(counts, list) and len(counts) == 6 and all(type(n) is int and n >= 0 for n in counts)
+            and sum(counts[1:]) == counts[0]):
+        star_counts = {str(star): counts[star] for star in range(1, 6)}
     shop = item.get("shop_info") or item.get("shop") or {}
     cats = categories_from(item)
     attr = item.get("attributes") or []
@@ -282,6 +288,7 @@ def normalize_item(item, divisor, rules, source_url, observed_at):
         "shop_name": clean(shop.get("name") or item.get("shop_name")) or None,
         "shop_username": clean(shop.get("username")) or None,
         "rating_average": rating.get("rating_star"),
+        "star_counts": star_counts,
         "rating_count": (rating.get("rating_count") or [None])[0] if isinstance(rating.get("rating_count"), list)
                         else integer(rating.get("rating_count")),
         "sold_period_reported": integer(item.get("sold")),

@@ -118,6 +118,48 @@ class PipelineTests(unittest.IsolatedAsyncioTestCase):
         await self.c.run_queue()
         self.c.visit.assert_not_awaited()
 
+    async def test_scroll_interruption_saved_with_queue_status(self):
+        url = "https://shopee.vn/product/1/2"
+        self.store.enqueue(url, "product", "test")
+        self.c.page = SimpleNamespace(url=url)
+        self.c.settle = AsyncMock(return_value=None)
+        self.c.collect_dom = AsyncMock()
+        self.c.scroll_and_collect = AsyncMock(return_value="captcha_or_verification")
+        await self.c.visit({"url": url, "kind": "product"})
+        report = self.store.export()
+        stop = report["last_interruption"]
+        self.assertEqual((stop["stage"], stop["reason"], stop["product_key"]),
+                         ("scroll_product", "captcha_or_verification", "1:2"))
+        self.assertEqual(report["queue_status"], {"blocked": 1})
+        self.assertEqual(report, self.store.report())
+
+    async def test_capture_manual_pages_without_skipping_progress(self):
+        url = "https://shopee.vn/product/1/2"
+        self.c.page = MagicMock(url=url)
+        self.c.page.locator.return_value.all_text_contents = AsyncMock(return_value=[])
+        def view(page, review, active_filter="all"):
+            return {"url": url, "name": "Demo", "reviews": [{"id": review}],
+                    "review_page": page, "review_filter": active_filter}
+        self.c.page.evaluate = AsyncMock(side_effect=[
+            view(1, "10"), view(2, "10"), view(2, "20", "5 stars"), view(3, "30"), view(2, "20")
+        ])
+        for expected_next in (2, 2, 2, 2, 3):
+            self.assertEqual(await self.c.collect_dom(checkpoint=True), 1)
+            self.assertEqual(self.store.get("review_progress", "1:2")["next_page"], expected_next)
+        self.assertEqual(len(self.store.rows("review")), 3)
+        self.c.page.goto.assert_not_called()
+
+    async def test_capture_keeps_network_block_until_retry(self):
+        self.c.page = MagicMock(url="https://shopee.vn/product/1/2")
+        self.c.accept_responses = True
+        self.c.network_block = "http_429"
+        self.c.collect_dom = AsyncMock()
+        with patch("builtins.input", side_effect=["capture", "run", "quit"]):
+            await self.c.console()
+        self.assertFalse(self.c.accept_responses)
+        self.c.collect_dom.assert_not_awaited()
+        self.c.page.locator.assert_not_called()
+
     async def test_resume_from_last_committed_review_page_after_restart(self):
         url = "https://shopee.vn/product/1/2"
         key = "1:2"

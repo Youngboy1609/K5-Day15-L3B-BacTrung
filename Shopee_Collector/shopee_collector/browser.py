@@ -49,7 +49,7 @@ class Collector:
         self.capture_count = 0
 
     def response(self, response):
-        if not self.accept_responses:
+        if not self.accept_responses or self.network_block:
             return
         # Capture page identity at event time; never use a later page as fallback.
         page_url = self.page.url
@@ -110,6 +110,9 @@ class Collector:
             self.store.event(now(), "response_parse_error", type(exc).__name__)
 
     async def check(self):
+        reason = self.network_block or blocker(self.page.url, "")
+        if reason:
+            return reason
         text = await self.page.locator("body").inner_text(timeout=10000)
         return self.network_block or blocker(self.page.url, text[:20000])
 
@@ -123,7 +126,7 @@ class Collector:
             return url_block
         return await self.check()
 
-    async def collect_dom(self):
+    async def collect_dom(self, *, checkpoint=False):
         url = self.page.url
         if not product_ids(url):
             return
@@ -134,10 +137,17 @@ class Collector:
                 self.store.ingest({"products": products})
             except (ValueError, TypeError, AttributeError):
                 self.store.event(now(), "jsonld_parse_error", "Unsupported JSON-LD shape")
-        view = await self.page.evaluate(PRODUCT_PAGE)
+        selector = self.cfg["selectors"].get("review_container", ".product-ratings")
+        view = await self.page.evaluate(PRODUCT_PAGE, selector)
         bundle = page_bundle(view, url, now(), self.rules)
         if bundle:
-            self.store.ingest(bundle)
+            rows = bundle["reviews"]
+            number = view.get("review_page")
+            review_page = None
+            if (checkpoint and not self.store.sample_reviews and rows and number and len(rows) == len(view["reviews"])
+                    and view.get("review_filter") in (None, "", "tat ca", "all")):
+                review_page = (rows[0]["product_key"], number, now())
+            return self.store.ingest(bundle, review_page=review_page)
 
     async def collect_gallery(self):
         # The desktop carousel only mounts the thumbnails in its current window.
@@ -215,6 +225,8 @@ class Collector:
         key = ":".join(ids)
         selector = self.cfg["selectors"].get("review_container", ".product-ratings")
         widget = self.page.locator(selector).first
+        if self.store.sample_reviews:
+            return await self.collect_star_sample(key, widget, selector)
         progress = self.store.get("review_progress", key) or {}
         review_cap = self.cfg.get("max_reviews_per_product", 100)
         if not self.cfg.get("all_review_pages"):
@@ -330,10 +342,65 @@ class Collector:
         self.store.review_stop(key, block or reason, now())
         return block or "review_paused"
 
+    async def collect_star_sample(self, key, widget, selector):
+        if await widget.count():
+            await widget.scroll_into_view_if_needed(timeout=5000)
+        block = await self.settle()
+        if block:
+            self.store.review_stop(key, block, now())
+            return block
+        await self.collect_dom()
+        groups = self.store.sample_progress(key)
+        for star in groups:
+            if product_ids(self.page.url) != tuple(key.split(":")):
+                break
+            group = self.store.sample_progress(key)[star]
+            if group["saved"] >= group["target"]:
+                continue
+            label = re.compile(rf"^\s*{star}\s*(?:sao|stars?)\b", re.I)
+            button = widget.locator(".product-rating-overview__filter").filter(has_text=label)
+            if await button.count() != 1 or not await button.is_visible():
+                continue
+            if block := await self.check():
+                break
+            await button.click(timeout=5000)
+            seen = set()
+            while True:
+                block = await self.settle()
+                if block:
+                    break
+                view = await self.page.evaluate(PRODUCT_PAGE, selector)
+                if not view or product_ids(view.get("url", "")) != tuple(key.split(":")):
+                    break
+                if not label.match(view.get("review_filter", "")):
+                    break
+                bundle = page_bundle(view, self.page.url, now(), self.rules)
+                self.store.ingest(bundle)
+                current = self.store.sample_progress(key)[star]
+                if current["saved"] >= current["target"]:
+                    break
+                page = (view.get("review_page"), tuple(row.get("id") for row in view.get("reviews", [])))
+                if page in seen or (not page[0] and not page[1]):
+                    break
+                seen.add(page)
+                if not await self.next_visible(self.cfg["selectors"]["review_next"]):
+                    break
+            if block:
+                break
+        groups = self.store.sample_progress(key)
+        complete = len(groups) == 5 and all(g["saved"] == g["target"] for g in groups.values())
+        reason = "star_sample_complete" if complete else "star_sample_incomplete"
+        self.store.review_stop(key, block or reason, now())
+        return block
+
     def detail_is_needed(self, url):
         ids = product_ids(url)
         if not ids or not self.cfg.get("skip_detail_when_complete", True):
             return True
+        if self.store.sample_reviews and self.cfg.get("collect_reviews", True):
+            groups = self.store.sample_progress(":".join(ids))
+            if len(groups) < 5 or any(g["saved"] < g["target"] for g in groups.values()):
+                return True
         product = self.store.get("product", ":".join(ids))
         if not product:
             return True
@@ -362,7 +429,7 @@ class Collector:
             return False
         self.network_block = None
         self.visiting_product = product_ids(url) if kind == "product" else None
-        collecting_reviews = False
+        stage = "open_page"
         self.store.status(url, "running", now())
         try:
             if not self.visiting_product or product_ids(self.page.url) != self.visiting_product:
@@ -371,25 +438,29 @@ class Collector:
                     self.network_block = f"http_{response.status}"
             block = await self.settle()
             if block:
-                self.store.status(url, "blocked", now(), block)
+                self.store.status(url, "blocked", now(), block, stage=stage)
                 return block
             if kind == "product":
                 if product_ids(self.page.url) != self.visiting_product:
                     self.store.status(url, "no_data", now(), "product_page_not_displayed")
                     return None
+                stage = "read_product"
                 await self.collect_dom()
+                stage = "scroll_product"
                 block = await self.scroll_and_collect()
                 if not block and product_ids(self.page.url) == product_ids(url):
+                    stage = "gallery"
                     block = await self.collect_gallery()
                 if not block:
+                    stage = "product_media"
                     key = ":".join(self.visiting_product)
                     product = self.store.get("product", key)
                     block = await self.save_media(products=[product] if product else [], reviews=self.store.product_reviews(key))
                 if not block and self.cfg.get("collect_reviews", True):
-                    collecting_reviews = True
+                    stage = "reviews"
                     block = await self.collect_reviews()
-                    collecting_reviews = False
                 if not block:
+                    stage = "save_media"
                     block = await self.save_media()
                 key = ":".join(product_ids(url))
                 p = self.store.get("product", key)
@@ -399,6 +470,7 @@ class Collector:
                 if p and all(detail_fields(p).values()) and product_ids(self.page.url) == product_ids(url):
                     status, note = "detail_complete", "observed_detail_fields_present"
             else:
+                stage = "listing"
                 for page_index in range(self.cfg["listing_pages_per_seed"]):
                     block = await self.scroll_and_collect(listing=True)
                     if block:
@@ -412,16 +484,19 @@ class Collector:
                         break
                 status, note = "visited", "discovery_attempt; coverage_unknown"
             if block:
-                self.store.status(url, "review_paused" if block == "review_paused" else "blocked", now(), block)
+                self.store.status(url, "review_paused" if block == "review_paused" else "blocked", now(), block, stage=stage)
                 return block
             self.store.status(url, status, now(), note)
         except Exception as exc:
-            if collecting_reviews:
-                reason = self.network_block or blocker(self.page.url, "")
+            reason = self.network_block or blocker(self.page.url, "")
+            if stage == "reviews":
                 self.store.review_stop(":".join(self.visiting_product), reason or type(exc).__name__, now())
-                self.store.status(url, "blocked" if reason else "review_paused", now(), reason or type(exc).__name__)
+                self.store.status(url, "blocked" if reason else "review_paused", now(), reason or type(exc).__name__, stage=stage)
                 return reason or "review_paused"
-            self.store.status(url, "failed", now(), type(exc).__name__)
+            if reason:
+                self.store.status(url, "blocked", now(), reason, stage=stage)
+                return reason
+            self.store.status(url, "failed", now(), type(exc).__name__, stage=stage)
             print(f"Trang bị lỗi: {type(exc).__name__}; đã lưu tiến độ.")
         finally:
             await self.drain()
@@ -605,32 +680,48 @@ class Collector:
             if command in {"quit", "q", "exit"}:
                 break
             if command == "run":
-                if not self.accept_responses:
+                await self.drain()
+                if not self.accept_responses or self.network_block:
+                    self.accept_responses = False
                     print("Đang tạm dừng; xử lý trang hiện tại rồi dùng retry.")
                 else:
                     await self.run_queue()
             elif command in {"capture", "retry"}:
-                self.network_block = None
+                await self.drain()
+                if command == "capture" and not self.accept_responses:
+                    print("Đang tạm dừng. Kiểm tra trang trong Chrome rồi dùng retry.")
+                    continue
+                if command == "retry":
+                    self.accept_responses = False
+                    self.network_block = None
                 block = await self.check()
                 if block:
                     self.accept_responses = False
                     print(f"Vẫn bị chặn: {block}.")
                     continue
+                if not canonical(self.page.url):
+                    print("Hãy mở trang sản phẩm hoặc danh mục Shopee trong tab đã kết nối.")
+                    continue
                 self.accept_responses = True
                 if command == "retry":
-                    if not canonical(self.page.url):
-                        print("Hãy mở lại trang Shopee đã truy cập được rồi nhập retry.")
-                        continue
                     self.store.retry(self.cfg.get("max_attempts", 2), confirmed_access=True)
-                    print("Đã đưa các trang bị thiếu/lỗi về hàng chờ; dùng run để tiếp tục.")
+                    print("Đã mở lại hàng chờ. Dùng capture để lưu trang hiện tại hoặc run để chạy hàng chờ.")
                 else:
-                    await self.collect_dom()
-                    if not product_ids(self.page.url):
+                    if product_ids(self.page.url):
+                        count = await self.collect_dom(checkpoint=True)
+                        if count is None:
+                            print("Chưa đọc được nội dung sản phẩm. Chờ trang hiển thị rồi nhập capture.")
+                        else:
+                            print(f"Đã ghi nhận sản phẩm và {count} đánh giá có mã trên trang hiện tại.")
+                    else:
                         await self.discover(include_categories=True)
+                        print("Đã ghi nhận các liên kết sản phẩm và danh mục đang hiển thị.")
                     await self.drain()
-                    await self.save_media()
+                    block = await self.check() or await self.save_media()
                     self.store.export()
-                    print("Đã ghi nhận dữ liệu được quan sát và link đang hiển thị.")
+                    if block:
+                        self.accept_responses = False
+                        print(f"Đã lưu tiến độ và tạm dừng: {block}.")
             elif command == "stats":
                 print(json.dumps(self.store.report(), ensure_ascii=False, indent=2))
             elif command == "export":
@@ -670,7 +761,7 @@ class Collector:
                 shopee_pages = [p for p in self.context.pages if urlsplit(p.url).hostname in ("shopee.vn", "www.shopee.vn")]
                 self.page = (shopee_pages[-1] if shopee_pages else
                              (self.context.pages[-1] if self.context.pages else await self.context.new_page()))
-                print(f"Đã kết nối Chrome CDP: {cdp} | trang: {self.page.url}")
+                print(f"Đã kết nối Chrome CDP. Tab hiện tại: {urlsplit(self.page.url).hostname or 'trang trống'}")
             else:
                 opts = {"headless": False}
                 if self.cfg.get("browser_channel"):
@@ -695,14 +786,14 @@ class Collector:
                 await self.context.route("**/*", route_resource)
             self.page.on("response", self.response)
             self.store.recover_running_jobs()
-            if refresh:
+            if refresh or self.store.sample_reviews != bool(self.cfg.get("sample_reviews")):
                 self.store.refresh_products(seeds)
             for url in seeds:
                 self.store.enqueue(url, "product" if product_ids(url) else "listing", now())
             for keyword in self.cfg.get("keywords", []):
                 self.store.enqueue("https://shopee.vn/search?keyword=" + quote(keyword), "listing", now())
             self.store.record_scope(self.cfg)
-            self.accept_responses = True
+            self.accept_responses = not self.store.blocked_job()
 
             try:
                 if auto:

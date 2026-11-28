@@ -10,6 +10,9 @@ from tempfile import NamedTemporaryFile
 from .parsing import product_ids, timestamp_utc
 
 
+REVIEWS_PER_STAR = 100
+
+
 def detail_fields(p):
     return {
         "name": bool(p.get("name")), "description": bool(p.get("description")),
@@ -61,7 +64,14 @@ class Store:
           CREATE TABLE IF NOT EXISTS queue(url TEXT PRIMARY KEY, kind TEXT, status TEXT DEFAULT 'pending',
              attempts INTEGER DEFAULT 0, last_error TEXT, updated_at TEXT);
           CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY, at TEXT, kind TEXT, message TEXT);
+          CREATE TABLE IF NOT EXISTS sample_targets(product TEXT, star INTEGER, total INTEGER,
+             PRIMARY KEY(product,star));
+          CREATE TABLE IF NOT EXISTS sample_members(review_key TEXT PRIMARY KEY, product TEXT, star INTEGER);
+          CREATE INDEX IF NOT EXISTS sample_groups ON sample_members(product,star);
         ''')
+        self.sample_reviews = bool(self.get("run_settings", "sample_reviews"))
+        if self.get("run_settings", "reviews_per_star") != REVIEWS_PER_STAR:
+            self._upgrade_review_sample()
         if recover_queue:
             self.recover_running_jobs()
 
@@ -74,10 +84,16 @@ class Store:
         return json.loads(r[0]) if r else None
 
     def rows(self, kind):
+        if kind == "review" and self.sample_reviews:
+            return [json.loads(row[0]) for row in self.db.execute(
+                "SELECT data FROM entities JOIN sample_members ON review_key=key WHERE kind='review' ORDER BY key")]
         return [json.loads(r[0]) for r in self.db.execute(
             "SELECT data FROM entities WHERE kind=? ORDER BY key", (kind,))]
 
     def product_reviews(self, key):
+        if self.sample_reviews:
+            return [json.loads(row[0]) for row in self.db.execute(
+                "SELECT data FROM sample_members JOIN entities ON key=review_key AND kind='review' WHERE product=?", (key,))]
         return [json.loads(r[0]) for r in self.db.execute(
             "SELECT data FROM entities WHERE kind='review' AND key GLOB ?", (key + ":*",))]
 
@@ -85,21 +101,85 @@ class Store:
         self.db.execute("INSERT INTO entities VALUES(?,?,?) ON CONFLICT(kind,key) DO UPDATE SET data=excluded.data",
                         (kind, key, encode(data)))
 
+    def sample_progress(self, product):
+        groups = {str(star): {"total": None, "target": REVIEWS_PER_STAR, "saved": 0} for star in range(1, 6)}
+        for star, total, saved in self.db.execute(
+            "SELECT t.star,t.total,count(m.review_key) FROM sample_targets t LEFT JOIN sample_members m "
+            "ON t.product=m.product AND t.star=m.star WHERE t.product=? GROUP BY t.star,t.total", (product,)
+        ):
+            target = REVIEWS_PER_STAR if total is None else min(REVIEWS_PER_STAR, max(total, saved))
+            groups[str(star)] = {"total": total, "target": target, "saved": saved}
+        return groups
+
+    def _upgrade_review_sample(self):
+        with self.db:
+            for product, star, total in self.db.execute("SELECT product,star,total FROM sample_targets").fetchall():
+                self.db.execute(
+                    "DELETE FROM sample_members WHERE rowid IN (SELECT rowid FROM sample_members "
+                    "WHERE product=? AND star=? ORDER BY rowid LIMIT -1 OFFSET ?)", (product, star, REVIEWS_PER_STAR))
+                self._reuse_reviews(product, star, total)
+            if self.sample_reviews:
+                self.db.execute("UPDATE queue SET status='pending' WHERE kind='product' "
+                                "AND status IN ('partial','covered','detail_complete','no_data')")
+                self.db.execute("UPDATE entities SET data=json_set(data,'$.stop_reason','sample_quota_changed') "
+                                "WHERE kind='review_progress' AND json_extract(data,'$.stop_reason') LIKE 'star_sample_%'")
+            self.put("run_settings", "reviews_per_star", REVIEWS_PER_STAR)
+
+    def _reuse_reviews(self, product, star, total):
+        target = min(total, REVIEWS_PER_STAR) if total is not None else REVIEWS_PER_STAR
+        self.db.execute(
+            "INSERT INTO sample_members SELECT key,?,? FROM entities WHERE kind='review' "
+            "AND key GLOB ? AND CAST(json_extract(data,'$.rating') AS TEXT)=? "
+            "AND NOT EXISTS (SELECT 1 FROM sample_members WHERE review_key=key) ORDER BY key "
+            "LIMIT (SELECT max(0, ? - count(*)) FROM sample_members WHERE product=? AND star=?)",
+            (product, star, product + ":*", str(star), target, product, star))
+
+    def _record_star_counts(self, product, counts):
+        for star in range(1, 6):
+            total = counts.get(str(star))
+            if type(total) is not int or total < 0:
+                total = None
+            inserted = self.db.execute("INSERT OR IGNORE INTO sample_targets VALUES(?,?,?)", (product, star, total))
+            if inserted.rowcount:
+                self._reuse_reviews(product, star, total)
+            elif total is not None:
+                self.db.execute("UPDATE sample_targets SET total=? WHERE product=? AND star=? AND total IS NULL",
+                                (total, product, star))
+
+    def _admit_review(self, review):
+        key, product = review["review_key"], review["product_key"]
+        member = self.db.execute("SELECT star FROM sample_members WHERE review_key=?", (key,)).fetchone()
+        star = review.get("rating")
+        if member:
+            return star is None or str(star) == str(member[0])
+        if str(star) not in ("1", "2", "3", "4", "5"):
+            return False
+        if not self.db.execute("SELECT 1 FROM sample_targets WHERE product=? AND star=?", (product, star)).fetchone():
+            self._record_star_counts(product, {})
+            if self.db.execute("SELECT 1 FROM sample_members WHERE review_key=?", (key,)).fetchone():
+                return True
+        return bool(self.db.execute(
+            "INSERT OR IGNORE INTO sample_members SELECT ?,product,star FROM sample_targets WHERE product=? AND star=? "
+            "AND min(coalesce(total,?),?) > (SELECT count(*) FROM sample_members WHERE product=? AND star=?)",
+            (key, product, star, REVIEWS_PER_STAR, REVIEWS_PER_STAR, product, star)).rowcount)
+
     def ingest(self, bundle, *, review_page=None):
         with self.db:
-            self._merge_bundle(bundle)
+            accepted = self._merge_bundle(bundle)
             if review_page:
                 key, number, at = review_page
                 reviews = bundle["reviews"]
                 if not reviews or any(r["product_key"] != key for r in reviews):
                     raise ValueError("Review page does not match saved reviews")
                 progress = self.get("review_progress", key) or {}
-                if number == progress.get("next_page", 1):
+                review_ids = [r["review_id"] for r in reviews]
+                if number == progress.get("next_page", 1) and review_ids != progress.get("last_review_ids"):
                     self.put("review_progress", key, {
                         "product_key": key, "pages_observed": number, "next_page": number + 1,
-                        "last_review_ids": [r["review_id"] for r in reviews],
+                        "last_review_ids": review_ids,
                         "stop_reason": "page_saved", "at": at,
                     })
+            return accepted
 
     def _merge_bundle(self, bundle):
         for shop in bundle.get("shops", []):
@@ -107,6 +187,8 @@ class Store:
             old.update({k: v for k, v in shop.items() if v is not None})
             self.put("shop", shop["shop_id"], old)
         for p in bundle.get("products", []):
+            if self.sample_reviews:
+                self._record_star_counts(p["product_key"], p.get("star_counts") or {})
             self.db.execute("INSERT INTO observations(product_key,data) VALUES(?,?)", (p["product_key"], encode(p)))
             old = self.get("product", p["product_key"]) or {}
             sources = old.get("field_observations", {})
@@ -143,7 +225,10 @@ class Store:
                 sources[k] = {"at": p["observed_at"], "source": p["source_kind"]}
             old["field_observations"] = sources
             self.put("product", p["product_key"], old)
+        accepted = 0
         for review in bundle.get("reviews", []):
+            if self.sample_reviews and not self._admit_review(review):
+                continue
             key = review["review_key"]
             old = self.get("review", key) or {}
             if review.get("shop_reply_content") and review["shop_reply_content"] != old.get("shop_reply_content"):
@@ -159,6 +244,8 @@ class Store:
                 review.pop("content", None)
             old.update({k: v for k, v in review.items() if v not in (None, [], "")})
             self.put("review", key, old)
+            accepted += 1
+        return accepted
 
     def review_stop(self, key, reason, at):
         with self.db:
@@ -218,10 +305,15 @@ class Store:
         ).fetchone()
         return {"url": r[0], "kind": r[1]} if r else None
 
-    def status(self, url, status, now, error=None):
-        self.db.execute("UPDATE queue SET status=?, updated_at=?, last_error=?, attempts=attempts+? WHERE url=?",
-                        (status, now, error, int(status == "running"), url))
-        self.db.commit()
+    def status(self, url, status, now, error=None, *, stage=None):
+        with self.db:
+            self.db.execute("UPDATE queue SET status=?, updated_at=?, last_error=?, attempts=attempts+? WHERE url=?",
+                            (status, now, error, int(status == "running"), url))
+            if stage:
+                self.put("diagnostic", "last_interruption", {
+                    "at": now, "stage": stage, "reason": error, "status": status,
+                    "product_key": ":".join(product_ids(url) or ()) or None,
+                })
 
     def event(self, now, kind, message):
         self.db.execute("INSERT INTO events(at,kind,message) VALUES(?,?,?)", (now, kind, message))
@@ -247,6 +339,8 @@ class Store:
 
     def record_scope(self, config):
         with self.db:
+            self.sample_reviews = bool(config.get("sample_reviews"))
+            self.put("run_settings", "sample_reviews", self.sample_reviews)
             self.put("run_settings", "scope", {
                 "seed_product_keys": [":".join(ids) for url in config.get("seeds", []) if (ids := product_ids(url))],
                 "required_fields": config.get("detail_required_fields", []),
@@ -254,7 +348,7 @@ class Store:
                 "all_review_pages": bool(config.get("all_review_pages")),
             })
 
-    def report(self):
+    def report(self, *, media_manifests=None):
         products, reviews = self.rows("product"), self.rows("review")
         checks = {}
         for p in products:
@@ -269,8 +363,11 @@ class Store:
         seed_checks = {key: {field: by_key.get(key, {}).get(field) not in (None, "", [], {})
                              for field in required} for key in seed_keys}
         media = {}
+        url_counts = {}
         for kind, roles in (("image", ("cover", "gallery", "description", "review")), ("video", ("product", "review"))):
-            manifest = self.media_manifest(kind, products, reviews)
+            manifest = (self.media_manifest(kind, products, reviews) if media_manifests is None
+                        else media_manifests[kind])
+            url_counts[kind] = len({row[f"{kind}_url"] for row in manifest})
             for role in roles:
                 rows = [r for r in manifest if r["role"] == role]
                 media[f"{role}_{kind}"] = {"observed_urls": len({r[f"{kind}_url"] for r in rows}),
@@ -292,6 +389,9 @@ class Store:
         for review in reviews:
             sampling_reviews.setdefault(review["product_key"], []).append(review)
         review_sampling = {}
+        cap = None if scope.get("all_review_pages") else scope.get("max_reviews_per_product", 100)
+        if self.sample_reviews:
+            cap = REVIEWS_PER_STAR * 5
         progress_by_key = {
             row["product_key"]: row for row in self.rows("review_progress")
         }
@@ -303,7 +403,7 @@ class Store:
             )
             review_sampling[key] = {
                 "observed_count": len(rows),
-                "cap": None if scope.get("all_review_pages") else scope.get("max_reviews_per_product", 100),
+                "cap": cap,
                 "observed_by_star": dict(sorted(star_counts.items())),
                 "stop_reason": progress.get("stop_reason", "not_stopped"),
                 "representativeness": "unknown_observed_subset_only",
@@ -311,9 +411,9 @@ class Store:
         return {
             "products_observed": len(products), "reviews_observed": len(reviews),
             "variants_observed": sum(len(p.get("variants") or []) for p in products),
-            "image_urls_observed": len({row["image_url"] for row in self.media_links("image", products, reviews)}),
+            "image_urls_observed": url_counts["image"],
             "image_download_status": dict(Counter(row["status"] for row in self.rows("image"))),
-            "video_urls_observed": len({row["video_url"] for row in self.media_links("video", products, reviews)}),
+            "video_urls_observed": url_counts["video"],
             "video_download_status": dict(Counter(row["status"] for row in self.rows("video"))),
             "product_fields_observed": field_counts, "product_checks": checks, "media_by_role": media,
             "product_jobs": self.db.execute("SELECT COUNT(*) FROM queue WHERE kind='product'").fetchone()[0],
@@ -325,6 +425,9 @@ class Store:
             "reviews_text_unknown": sum(not r.get("content") and r.get("content_status") != "empty_at_source" for r in reviews),
             "review_pagination": self.rows("review_progress"),
             "review_sampling": review_sampling,
+            "review_sample_by_star": {key: self.sample_progress(key) for key in sorted(set(by_key) | set(seed_keys))}
+                                     if self.sample_reviews else None,
+            "last_interruption": self.get("diagnostic", "last_interruption"),
             "queue_status": dict(self.db.execute("SELECT status,COUNT(*) FROM queue GROUP BY status").fetchall()),
             "missing_fields_count": dict(missing),
             "classification_methods": dict(Counter(p.get("classification_method", "unknown") for p in products)),
@@ -383,8 +486,8 @@ class Store:
         }
         datasets = {"products": products, "variants": variants, "reviews": reviews,
                     "shops": list(shops.values()), "categories": list(categories.values())}
-        for kind in ("image", "video"):
-            datasets[f"{kind}s"] = self.media_manifest(kind, products, reviews)
+        manifests = {kind: self.media_manifest(kind, products, reviews) for kind in ("image", "video")}
+        datasets.update(images=manifests["image"], videos=manifests["video"])
         for name, data in datasets.items():
             with export_file(self.folder / (name + ".csv"), "utf-8-sig") as f:
                 writer = csv.DictWriter(f, fieldnames=fields[name], extrasaction="ignore")
@@ -393,7 +496,7 @@ class Store:
         with export_file(self.folder / "products.jsonl", "utf-8") as f:
             for p in products:
                 f.write(encode(p) + "\n")
-        report = self.report()
+        report = self.report(media_manifests=manifests)
         with export_file(self.folder / "coverage_report.json", "utf-8") as f:
             json.dump(report, f, indent=2, ensure_ascii=False)
         return report
