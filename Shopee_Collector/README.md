@@ -1,37 +1,22 @@
-# Shopee Collector (Windows)
+# Shopee Collector
 
-Hướng dẫn chạy collector với Chrome riêng qua Chrome DevTools Protocol (CDP). Collector đọc dữ liệu mà trang Shopee tải trong trình duyệt và lưu tiến độ cùng các file xuất vào thư mục `output`.
+Công cụ thu thập thông tin sản phẩm và đánh giá mà trình duyệt tải khi mở các link Shopee đã chọn. Dữ liệu và tiến độ được lưu vào SQLite, sau đó xuất ra CSV, JSONL và báo cáo. Cấu hình mặc định có ba link sản phẩm để chạy thử.
 
-## Yêu cầu
+## 1. Chuẩn bị trên Windows
 
-- Windows 10/11 và PowerShell.
-- Python 3.10 trở lên; lệnh `py -3` có sẵn.
-- Google Chrome tại `C:\Program Files\Google\Chrome\Application\chrome.exe`.
-- Kết nối Internet.
-
-## Cài đặt lần đầu
-
-Mở PowerShell tại thư mục `Shopee_Collector`, rồi chạy:
+Cần Python 3.10 trở lên, Google Chrome, PowerShell và kết nối Internet. Chạy từ thư mục gốc của repo nhóm.
 
 ```powershell
-.\SETUP_WINDOWS.bat
-```
-
-Script tạo `.venv`, cài các gói trong `requirements.txt` và cài Chromium cho Playwright. Nếu muốn cài thủ công:
-
-```powershell
+Set-Location .\Shopee_Collector
 py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m playwright install chromium
 ```
 
-## Chạy với tài khoản Shopee của bạn
+Luồng bên dưới dùng Chrome đã cài trên máy. Nếu muốn dùng trình duyệt Chromium do Playwright tự mở, chạy `SETUP_WINDOWS.bat` rồi `START_WINDOWS.bat`.
 
-### 1. Mở một Chrome profile riêng
+## 2. Mở Chrome riêng và đăng nhập bằng QR
 
-Đóng Chrome đang dùng `chrome_profile` trước khi mở phiên mới. Nếu thư mục profile đã có dữ liệu cũ và bạn cần một profile hoàn toàn mới, hãy tự sao lưu hoặc xóa riêng `chrome_profile` sau khi xác nhận không cần phiên cũ. Profile này tách biệt với Chrome cá nhân thông thường.
-
-Trong PowerShell tại thư mục `Shopee_Collector`, mở trang Shopee bằng Chrome:
+Trong PowerShell tại `Shopee_Collector`, chạy lệnh sau. Chrome tạo profile mới ở `chrome_profile/` trong lần đầu. Nếu Chrome được cài ở vị trí khác, thay đường dẫn tới `chrome.exe`.
 
 ```powershell
 & "C:\Program Files\Google\Chrome\Application\chrome.exe" `
@@ -40,60 +25,69 @@ Trong PowerShell tại thư mục `Shopee_Collector`, mở trang Shopee bằng C
   "https://shopee.vn/"
 ```
 
-Giữ cửa sổ Chrome mở. Nếu Chrome được cài ở vị trí khác, thay đường dẫn đến `chrome.exe`.
+1. Trong cửa sổ Chrome vừa mở, bấm **Đăng nhập** trên Shopee và chọn đăng nhập bằng **mã QR**.
+2. Mở ứng dụng Shopee trên điện thoại, quét mã QR trên màn hình và xác nhận đăng nhập.
+3. Kiểm tra trang Shopee đã đăng nhập trên máy tính, rồi giữ cửa sổ này mở.
 
-### 2. Đăng nhập thủ công bằng QR
-
-Trong cửa sổ Chrome vừa mở, tự đăng nhập Shopee bằng QR code trên điện thoại. Chờ trang hoàn tất đăng nhập; không đưa mật khẩu, OTP, cookie hoặc QR đăng nhập vào chat hay file cấu hình. Không đóng Chrome trong lúc collector đang chạy.
-
-Có thể kiểm tra cổng CDP từ một cửa sổ PowerShell khác:
+Kiểm tra Chrome đang nghe cổng CDP bằng lệnh sau. Kết quả có dạng `Chrome/...`. Chrome cần thư mục profile riêng để bật cổng gỡ lỗi. Giữ kết nối trên máy cục bộ và đóng cửa sổ Chrome này sau khi chạy xong. [Tài liệu Chrome](https://developer.chrome.com/blog/remote-debugging-port)
 
 ```powershell
-(Invoke-RestMethod "http://127.0.0.1:9222/json/version").Browser
+(Invoke-RestMethod 'http://127.0.0.1:9222/json/version').Browser
 ```
 
-Kết quả cần có dạng `Chrome/...`. Nếu kết nối thất bại, kiểm tra Chrome còn mở và đang dùng đúng cổng `9222`.
+## 3. Chạy với ba sản phẩm
 
-### 3. Chạy collector cho 3 sản phẩm
-
-Mở PowerShell tại thư mục `Shopee_Collector` và chạy:
+Tại PowerShell, vẫn trong `Shopee_Collector`, chạy:
 
 ```powershell
 .\.venv\Scripts\python.exe -m shopee_collector run --cdp http://127.0.0.1:9222 --output output/test_3_san_pham --all-reviews
 ```
 
-Lệnh dùng các URL sản phẩm trong `config/settings.json` (mặc định là ba sản phẩm đã cấu hình), kết nối tới Chrome đang đăng nhập và cố gắng chuyển các trang đánh giá cho đến khi hết trang hoặc không còn tiến triển. Khi hiện dấu nhắc `shopee>`, nhập:
+Khi thấy dấu nhắc `shopee>`, nhập `run` rồi bấm Enter để bắt đầu xử lý các link trong `config/settings.json`. Cờ `--all-reviews` đọc tiếp các trang đánh giá qua nút phân trang đang hiển thị. Công cụ dừng khi hết trang, không còn tiến triển hoặc gặp tín hiệu chặn. Số review thu được là số đã quan sát trong phiên.
 
-```text
-run
-```
+| Lệnh tại `shopee>` | Dùng khi |
+|---|---|
+| `run` | Chạy hàng chờ các link sản phẩm |
+| `stats` | Xem số bản ghi, tiến độ và các trường còn thiếu |
+| `export` | Xuất lại dữ liệu đã lưu |
+| `retry` | Đưa mục bị tạm dừng hoặc lỗi về hàng chờ sau khi bạn đã kiểm tra trang trong Chrome và truy cập được bình thường. Sau đó nhập `run` |
+| `quit` | Lưu và thoát collector. Chrome do bạn mở vẫn chạy |
 
-Để thoát sau khi hoàn tất, nhập `quit`. Tiến độ được ghi vào SQLite và các file xuất được cập nhật tự động; nếu dừng giữa chừng, chạy lại cùng lệnh và cùng `--output` để tiếp tục. Muốn một lượt hoàn toàn mới, chọn một thư mục `--output` mới. `--all-reviews` không bảo đảm lấy được mọi đánh giá: dữ liệu phụ thuộc trang thực tế tải, phân trang và giới hạn truy cập.
+Nếu thấy `ECONNREFUSED`, kiểm tra cửa sổ Chrome còn mở và lệnh kiểm tra cổng ở bước 2 trả về `Chrome/...`. Nếu Shopee tiếp tục yêu cầu xác minh hoặc trả lỗi 401, 403, 429, dừng lần chạy và kiểm tra trên trình duyệt trước khi tiếp tục.
 
-## Kết quả
+### Chọn link khác hoặc chạy tiếp
 
-Trong `output/test_3_san_pham/`:
+- Để thử link khác, sao chép `config/settings.json` thành `config/settings.local.json`. Thay danh sách `seeds` bằng các link sản phẩm Shopee đầy đủ, để `keywords` là `[]` và giữ các mục cấu hình còn lại. Thêm `--config config/settings.local.json` vào lệnh.
+- Để tiếp tục một lần chạy dở, chạy lại với cùng `--output`. SQLite giữ hàng chờ, review theo ID và mốc phân trang đã ghi. Dùng thư mục đầu ra mới cho một lần chạy độc lập.
+- Thêm `--refresh` khi muốn đưa các sản phẩm trong `seeds` đã xử lý về hàng chờ để quan sát lại. Dữ liệu đã ghi vẫn được giữ.
+- Nếu bỏ `--all-reviews`, số trang đánh giá mỗi sản phẩm dùng giới hạn `review_pages_per_product` trong cấu hình.
 
-- `products.csv`, `reviews.csv`, `variants.csv`, `shops.csv`, `categories.csv`: dữ liệu đã chuẩn hóa.
-- `products.jsonl`: dữ liệu sản phẩm dạng JSONL.
-- `catalog.sqlite3`: dữ liệu và tiến độ để chạy tiếp.
-- `coverage_report.json`: thống kê kết quả, trường thiếu và phạm vi đã quan sát.
-- `images.csv`, `videos.csv` nếu có media được quan sát.
+## 4. Kiểm tra kết quả
 
-Media tải về được lưu trong `output_media/`. Kiểm tra báo cáo và dữ liệu trước khi sử dụng hoặc chia sẻ; không xem kết quả là bao phủ toàn bộ Shopee. CSV dùng UTF-8 BOM để thuận tiện mở bằng Excel.
+Lệnh ở bước 3 ghi vào `output/test_3_san_pham/`. Mở `coverage_report.json` trước để xem trạng thái từng sản phẩm và số review hoặc media đã thu được. Các file CSV dùng UTF-8 BOM để Excel đọc được tiếng Việt.
 
-## Lệnh kiểm tra offline
+| File hoặc thư mục | Nội dung |
+|---|---|
+| `coverage_report.json` | Hàng chờ, trường chi tiết còn thiếu, tiến độ phân trang review và số media đã lưu |
+| `products.csv`, `variants.csv` | Sản phẩm và các phân loại đã quan sát, gồm giá và tồn kho nếu có |
+| `reviews.csv` | Mã review, sản phẩm, điểm, nội dung và phân loại đã mua nếu có |
+| `images.csv`, `videos.csv` | URL, vai trò, trạng thái tải và đường dẫn tới file trong `images/` hoặc `videos/` |
+| `shops.csv`, `categories.csv` | Thông tin shop và danh mục đã quan sát |
+| `products.jsonl`, `catalog.sqlite3` | Dữ liệu sản phẩm lồng nhau, kho dữ liệu và tiến độ để chạy tiếp |
 
-Các lệnh sau chạy trên dữ liệu giả lập/kiểm thử, không đăng nhập Shopee:
+Có thể xuất lại các file từ SQLite khi collector đã dừng.
 
 ```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
-.\.venv\Scripts\python.exe -m shopee_collector demo --output output/demo
+.\.venv\Scripts\python.exe -m shopee_collector export --output output/test_3_san_pham
 ```
 
-## Lưu ý về quyền riêng tư và giới hạn
+Đối chiếu giá, biến thể và vài review với trang sản phẩm trước khi dùng dữ liệu. Các trường thiếu hoặc giá cần xác minh được ghi trong báo cáo hoặc metadata. Profile Chrome, cấu hình cục bộ và dữ liệu thu thập dùng trên máy cá nhân. Hãy rà thông tin nhận dạng trong nội dung review trước khi chia sẻ dữ liệu.
 
-- Chỉ dùng tài khoản của bạn và dữ liệu bạn có quyền truy cập; tuân thủ điều khoản Shopee và quy định áp dụng. Dừng nếu gặp yêu cầu xác minh hoặc giới hạn truy cập; không tìm cách vượt chặn.
-- Profile `chrome_profile` có thể chứa phiên đăng nhập. Không chia sẻ hoặc commit profile, dữ liệu crawl, SQLite, ảnh/video hay file output.
-- Review công khai có thể chứa thông tin cá nhân do người viết tự đưa vào. Rà soát và loại bỏ thông tin nhạy cảm trước khi chia sẻ dữ liệu.
-- Collector chỉ lưu các trường được chọn từ dữ liệu mà trang tải; cấu trúc trang có thể thay đổi, giá/đơn vị và mức độ đầy đủ cần được kiểm tra độc lập.
+## 5. Chạy kiểm tra offline
+
+```powershell
+.\.venv\Scripts\python.exe -B -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -B -m shopee_collector demo --output output/demo
+```
+
+Chế độ `demo` dùng dữ liệu giả lập từ `tests/synthetic_payload.json` để kiểm tra luồng đọc, lưu và xuất dữ liệu. Xem [nhật ký kiểm thử](VALIDATION.md) để biết phạm vi của lần kiểm tra trước.
