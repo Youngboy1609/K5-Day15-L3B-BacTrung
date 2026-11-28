@@ -12,7 +12,7 @@ DATA_PATH = os.path.join(ROOT, "data", "reviews.json")
 if CODEBASE not in sys.path:
     sys.path.insert(0, CODEBASE)
 
-from agent import answer, _helpfulness_factor, _weighted_score  # noqa: E402
+from agent import answer, _helpfulness_factor, _validate_judgements, _weighted_score  # noqa: E402
 
 
 VALID = {
@@ -178,6 +178,39 @@ class AgentTests(unittest.TestCase):
             next(item["sentiment"] for item in b03["review_assessments"] if item["review_id"] == "R004"),
             "negative",
         )
+
+    def test_validate_judgements_normalizes_fences_aliases_and_long_reasons(self):
+        reviews = [{"review_id": "R101"}]
+        raw = """```json
+        {"reviews":[{"review_id":"R101","sentiment":"Positive","evidence_strength":"Strong","reason":"%s","media_assessment":"N/A"}]}
+        ```""" % ("A" * 280)
+        parsed = _validate_judgements(raw, reviews)
+        self.assertEqual(parsed["R101"]["sentiment"], "positive")
+        self.assertEqual(parsed["R101"]["evidence_strength"], "high")
+        self.assertEqual(parsed["R101"]["media_assessment"], "not_applicable")
+        self.assertEqual(len(parsed["R101"]["reason"]), 240)
+        self.assertTrue(parsed["R101"]["reason"].endswith("..."))
+
+    def test_answer_retries_once_on_transient_invalid_json_then_succeeds(self):
+        b10_input = {
+            "product_url": "https://shopee.vn/fixture-bactrung-case-rugged-002",
+            "phone_model": "Samsung Galaxy S24",
+            "case_variant": "Ốp chống sốc viền nhám",
+        }
+        valid_reply = {
+            "reviews": [
+                {"review_id": rid, "sentiment": "positive", "evidence_strength": "medium", "reason": "Ok", "media_assessment": "not_applicable"}
+                for rid in ("R101", "R102", "R103")
+            ]
+        }
+        with patch("agent.call_model") as mocked_call:
+            mocked_call.side_effect = [
+                {"text": "not valid json", "model": "fake", "tokens_in": 10, "tokens_out": 5},
+                {"text": json.dumps(valid_reply), "model": "fake", "tokens_in": 10, "tokens_out": 15},
+            ]
+            result = self.call_json(b10_input)
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(mocked_call.call_count, 2)
 
 
 if __name__ == "__main__":

@@ -93,16 +93,14 @@ Nhóm dùng stack khác (Node, Streamlit, notebook…): sửa hàm `run_app()` t
 
 | Thành phần | Thật / Giả | Ghi chú |
 |---|---|---|
-| Lời gọi phân tích ở quyết định trung tâm | **Mock ở CP2** | `MODEL_PROVIDER=fake`, heuristic rule-based, token 0 |
-| Review dùng trong demo | **Synthetic** | 14 review local, không phải review Shopee thật |
+| Lời gọi phân tích ở quyết định trung tâm | **Thật** (từ CP3/CP4) | Model eval lượt 1: `gpt-4o` (OpenAI); lượt 2 & mô phỏng chi phí: `openai/gpt-4o-mini` (OpenRouter); có chế độ `fake` cho unit test offline |
+| Review dùng trong demo | **Synthetic** | 14 review local trong `data/reviews.json`, không phải review Shopee thật (có hỗ trợ đọc export local từ `Shopee_Collector`) |
 | Bằng chứng pain | **Khảo sát thật, có giới hạn** | 42 dòng eligible trong 64 dòng CSV; sample tự chọn, nguồn totals còn lệch |
-| Phân tích media | **Chưa có ở CP2** | Fixture không có ảnh/video |
+| Phân tích media | **Thật (ảnh/frame tĩnh synthetic)** | Model đọc ảnh và 1 frame tĩnh trích từ MP4 synthetic (`R004`); không phân tích chuyển động/âm thanh |
 
 ## Dùng AI vào việc gì
 
-OpenCode hỗ trợ code mock, fixture và draft benchmark/spec; heuristic hiện tại không phải AI thật. Nhật thu khảo sát, nhóm kiểm lại số liệu với CSV; toàn bộ fixture được gắn nhãn synthetic và không dùng làm bằng chứng pain. Chi tiết: [docs/ai-usage.md](docs/ai-usage.md), quy ước agent ở [AGENTS.md](AGENTS.md).
-
-____
+Nhóm dùng OpenAI (`gpt-4o`) và OpenRouter (`openai/gpt-4o-mini`) ở bước phân tích review/ảnh trong bản chạy thử; dùng OpenCode và Antigravity hỗ trợ viết code, test, tài liệu và dàn slide. Mọi số liệu khảo sát đối chiếu trực tiếp từ `results.csv`, kết quả `eval/run-*.csv` và `cost/simulate-*.csv` chạy bằng công cụ chuẩn của khung, được thành viên kiểm tra lại. Chi tiết: [docs/ai-usage.md](docs/ai-usage.md), quy ước agent ở [AGENTS.md](AGENTS.md).
 
 ## File mẫu — điền ở bước nào
 
@@ -134,5 +132,5 @@ ____
 | 4 | Bản chạy thử làm trọn lát cắt | `codebase/` · lệnh ở mục "Lệnh" |
 | 5 | Định nghĩa "tốt" + bộ câu thử | `data/DATA_CARD.md` · `eval/` |
 | 6 | Mô phỏng chi phí khi dùng thật | `cost/` |
-| 7 | Slide + demo + video dự phòng | `demo-slides.pdf` ở thư mục gốc · link video: ____ |
+| 7 | Slide + demo + video dự phòng | `demo-slides.pdf` ở thư mục gốc · video cục bộ: `evidence/cp3-quang-demo-frame-30s.mp4` |
 | + | *Bonus:* người dùng thử | `validation/log.md` |
