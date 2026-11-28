@@ -34,9 +34,9 @@ personas:
     source: "Q3 từ 10 lần trở lên: 16/42. Số phiên và lượt phân tích (tự ước tính): xem hai lựa chọn trong một phiên."
 
 # Đơn vị: USD / 1 triệu token, gói Standard trả phí, đầu vào tính theo giá không cache.
-# openai/gpt-4o-mini (qua OpenRouter) là model demo, khớp PR #2 của Quang.
-# Tên model ghi đúng chuỗi OpenRouter trả về để simulate khớp giá với token đo được.
-# GPT-4o là mức model mạnh hơn; Gemini 3.1 Flash-Lite là mức giá tham chiếu để so sánh.
+# gpt-4o (OpenAI) là model demo: lượt eval 1 run-1@20261128-094539 chạy bằng model này.
+# Tên model phải khớp đúng cột model trong eval/run-N.csv để simulate khớp giá với token đo được.
+# openai/gpt-4o-mini là mức rẻ để so sánh; Gemini 3.1 Flash-Lite là mức giá tham chiếu.
 prices:
   - model: openai/gpt-4o-mini
     input: 0.15
