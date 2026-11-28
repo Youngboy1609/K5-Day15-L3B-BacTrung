@@ -41,3 +41,7 @@ Lượt `simulate-1@20261128-104717` chạy **50 phiên** với seed `42`. Cột
 - Bảng độ nhạy: model rẻ hơn · cache · cắt ngữ cảnh · giới hạn bước — mỗi cần gạt đổi chi phí bao nhiêu
 - Chi phí ngoài model: hosting, lưu trữ, giờ công người duyệt
 - Quy mô nào thì bài toán còn đáng làm
+
+## 5. Đối chứng bằng token đo trên GPT‑4o
+
+[Mô phỏng đối chứng](../evidence/cp4-gpt-4o/README.md) đo token trực tiếp trên `gpt-4o`: **$0.0046/task đạt benchmark**, và **$0.4482 / $1.49 / $4.48 mỗi tháng** cho 30 / 100 / 300 người dùng. Đây là lượt đo riêng; hàng giá GPT‑4o ở §2 áp giá GPT‑4o lên token đo bằng GPT‑4o-mini.
