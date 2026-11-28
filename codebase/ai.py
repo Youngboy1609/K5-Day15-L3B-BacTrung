@@ -109,6 +109,55 @@ def _mock_judge(user):
     return json.dumps({"reviews": judged}, ensure_ascii=False)
 
 
+CHAT_URLS = {
+    "openai": "https://api.openai.com/v1/chat/completions",
+    "openrouter": "https://openrouter.ai/api/v1/chat/completions",
+}
+
+JUDGEMENT_SCHEMA = {
+    "type": "object",
+    "required": ["reviews"],
+    "additionalProperties": False,
+    "properties": {
+        "reviews": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "review_id",
+                    "sentiment",
+                    "evidence_strength",
+                    "reason",
+                    "media_assessment",
+                ],
+                "additionalProperties": False,
+                "properties": {
+                    "review_id": {"type": "string"},
+                    "sentiment": {"type": "string", "enum": ["positive", "negative", "mixed", "unknown"]},
+                    "evidence_strength": {"type": "string", "enum": ["high", "medium", "low"]},
+                    "reason": {"type": "string"},
+                    "media_assessment": {
+                        "type": "string",
+                        "enum": ["not_assessed", "not_applicable", "supported", "unsupported"],
+                    },
+                },
+            },
+        },
+    },
+}
+
+
+def _post_chat(url: str, body: dict) -> dict:
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json", "Authorization": "Bearer " + API_KEY},
+    )
+    with urllib.request.urlopen(request, timeout=60) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
 @model_call
 def call_model(system: str, user: str, images=()) -> dict:
     if MODEL_PROVIDER == "fake":
@@ -118,8 +167,9 @@ def call_model(system: str, user: str, images=()) -> dict:
             "tokens_in": 0,
             "tokens_out": 0,
         }
-    if MODEL_PROVIDER != "openai":
-        raise NotImplementedError("CP3 demo supports MODEL_PROVIDER=openai or fake")
+    url = CHAT_URLS.get(MODEL_PROVIDER)
+    if url is None:
+        raise NotImplementedError("CP4 demo supports MODEL_PROVIDER=openai, openrouter, or fake")
     if not MODEL_NAME or not API_KEY:
         raise RuntimeError("Chưa điền MODEL_NAME/API_KEY trong .env")
 
@@ -146,25 +196,36 @@ def call_model(system: str, user: str, images=()) -> dict:
         else:
             image_url = image
         content.append({"type": "image_url", "image_url": {"url": image_url}})
-    body = {
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": content},
+    ]
+    strict_body = {
         "model": MODEL_NAME,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": content},
-        ],
-        "response_format": {"type": "json_object"},
+        "messages": messages,
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {"name": "review_judgements", "strict": True, "schema": JUDGEMENT_SCHEMA},
+        },
     }
-    request = urllib.request.Request(
-        "https://api.openai.com/v1/chat/completions",
-        data=json.dumps(body).encode("utf-8"),
-        method="POST",
-        headers={"Content-Type": "application/json", "Authorization": "Bearer " + API_KEY},
-    )
+    if MODEL_PROVIDER == "openrouter":
+        strict_body["provider"] = {"require_parameters": True}
     try:
-        with urllib.request.urlopen(request, timeout=60) as response:
-            data = json.loads(response.read().decode("utf-8"))
+        data = _post_chat(url, strict_body)
     except urllib.error.HTTPError as error:
-        raise RuntimeError("OpenAI HTTP %d" % error.code) from None
+        if error.code != 400:
+            raise RuntimeError(f"{MODEL_PROVIDER} HTTP {error.code}") from None
+        fallback_body = {
+            "model": MODEL_NAME,
+            "messages": messages,
+            "response_format": {"type": "json_object"},
+        }
+        try:
+            data = _post_chat(url, fallback_body)
+        except urllib.error.HTTPError as fallback_error:
+            raise RuntimeError(f"{MODEL_PROVIDER} HTTP {fallback_error.code}") from None
+    except (urllib.error.URLError, TimeoutError):
+        raise RuntimeError(f"Không kết nối được {MODEL_PROVIDER} trong thời gian chờ") from None
     usage = data["usage"]
     return {
         "text": data["choices"][0]["message"].get("content") or json.dumps(data["choices"][0]["message"].get("refusal") or ""),

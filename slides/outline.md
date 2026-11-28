@@ -5,19 +5,24 @@
 
 | # | Trang | Có gì | Số lấy từ | Xong |
 |---|---|---|---|---|
-| 1 | Người dùng & pain | Ai · việc gì · chỗ đau + số và trích dẫn | `evidence/summary.md` | ☐ |
-| 2 | Vì sao chọn bài này | Bảng impact rút gọn + hướng bị loại | `spec.md` §2 | ☐ |
-| 3 | Giải pháp | Lát cắt một câu · sơ đồ · AI tự làm đến đâu, vì sao | `spec.md` §4 | ☐ |
-| 4 | Demo live | 1 trường hợp thường + 1 trường hợp khó (lấy từ bộ câu thử); mạng hỏng → video dự phòng | `eval/benchmark.csv` | ☐ |
-| 5 | **Đánh giá thế nào** | Dataset · bộ câu thử · metric · lượt 1 → lượt 2 so với chuẩn "đạt" (kèm run ID) · lỗi chính | `eval/README.md`, `eval/report.md` | ☐ |
-| 6 | **Chi phí khi dùng thật** | Chi phí / task thành công · 3 kịch bản · so với impact | `cost/cost-estimate.md` | ☐ |
-| 7 | Kết luận | Go / iterate / stop — dẫn số ở trang 1, 5, 6 | — | ☐ |
-| 8 | Nếu có thêm 1 tuần | 2–3 việc, trỏ về lỗi còn lại / phản hồi người dùng | `eval/report.md` mục 4 · `validation/log.md` | ☐ |
+| 1 | Đọc review ốp lưng đúng mẫu trên Shopee | Lát cắt demo và 41/42 người gặp ít nhất một khó khăn | `evidence/summary.md` | ☑ |
+| 2 | Khảo sát người mua | 28/42 cho từng khó khăn phổ biến nhất, 20/42 chọn cả hai. Trung vị thời gian đọc và trích dẫn S055 | `evidence/survey/results.csv`, `evidence/summary.md`, `spec.md` §2 | ☑ |
+| 3 | Giải pháp | Sơ đồ lọc đúng biến thể, AI đánh giá và trả dẫn chứng. Ví dụ R004 | `spec.md` §4, `data/reviews.json` | ☑ |
+| 4 | Demo trực tiếp | Ca thường B10 và ca khó B03. Ảnh chụp từ video CP3, kèm liên kết video dự phòng | `eval/benchmark.csv`, `eval/run-2.csv`, `docs/quang-demo.md` | ☑ |
+| 5 | Đánh giá CP4 | 23/24 và 24/24 trên cùng bộ thử, kèm run ID. B10 trả được phân tích ở lượt 2. B01/B02 cho thấy khuyến nghị còn dao động | `eval/README.md`, `eval/report.md` | ☑ |
+| 6 | Chi phí khi dùng thật | Bình quân 50 phiên và 35 phiên có gọi model, cách ước tính mỗi task đạt, ba kịch bản theo tháng | `cost/simulate-1.csv`, `cost/cost-estimate.md` | ☑ |
+| 7 | Kết luận | Thử nghiệm tiếp với người mua ốp dựa trên khảo sát, benchmark và chi phí API | `spec.md` §1, §7, §8 | ☑ |
+| 8 | Kế hoạch một tuần | Giữ một model để đo độ ổn định, đánh giá ít nhất 50 review đã làm sạch và thử với 3–5 người | `eval/report.md` mục 4 | ☑ |
+
+Logo Shopee trên trang mở đầu lấy từ [Sea Limited](https://www.sea.com/products/shopee). Ảnh ốp là minh họa tạo bằng AI. Ảnh ở trang demo trích từ video CP3 của nhóm.
 
 **Trước khi lên:** tải repo về một máy khác (hoặc thư mục mới), chạy theo mục "Chạy trong 3 phút" của `README.md` · `.env` có trên máy demo, đã gọi thử 1 câu trong vòng 1 giờ trước giờ demo · video dự phòng mở được bằng cửa sổ ẩn danh · biết bản chạy thử sẽ làm gì với **1 câu thử lạ** của giám khảo.
 
-Ai nói trang nào (mỗi người ≥1 phần):
+Ai nói trang nào (mỗi người ≥1 phần — dự kiến theo phân công):
 
 | Trang | Người nói |
 |---|---|
-| | |
+| 1–2 | Nguyễn Đức Nhật (bằng chứng pain & khảo sát) |
+| 3–4 | Phạm Đăng Quang & Hồ Trọng Nghĩa (giải pháp & demo live) |
+| 5–6 | Nguyễn Cao Minh & Nguyễn Đức Nhật (đánh giá lượt 1 → lượt 2 & chi phí) |
+| 7–8 | Hồ Trọng Nghĩa (kết luận & kế hoạch 1 tuần) |

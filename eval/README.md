@@ -1,4 +1,4 @@
-# Hồ sơ đánh giá — CP3
+# Hồ sơ đánh giá — CP4
 
 ## 1. Dataset → xử lý
 
@@ -36,11 +36,11 @@ Benchmark dùng 24 tình huống. Mười câu được định hướng bởi p
 
 | Lượt | Run ID | Model | Cấu hình | Đạt / tổng | % | Đạt chuẩn? |
 |---|---|---|---|---|---|---|
-| 1 | `run-1@20261128-094539` | `gpt-4o` (OpenAI) | Benchmark 24 câu; fixture local synthetic; gọi model thật | 23/24 | 96% | Đạt theo chuẩn khóa; xem lỗi B10 |
-| 2 | Chưa chạy | — | Chờ cải tiến CP3 | — | — | — |
+| 1 | `run-1@20261128-094539` | `gpt-4o` (OpenAI) | Benchmark 24 câu; fixture local synthetic; gọi model thật (`json_object`) | 23/24 | 96% | Đạt theo chuẩn khóa; lỗi B10 (`ANALYSIS_UNAVAILABLE`) |
+| 2 | `run-2@20261128-104603` | `openai/gpt-4o-mini` (OpenRouter) | Cùng benchmark 24 câu; bật `json_schema` strict + chuẩn hóa enum/length + retry 1 lần | 24/24 | 100% | Đạt chuẩn khóa CP2 (`thuong` 5/5, `kho` 13/13, `tu_choi` 6/6) |
 
-Kết quả và trace: `eval/run-1.csv`, `traces/run-1.jsonl`. B10 là câu duy nhất không đạt: output cuối `ANALYSIS_UNAVAILABLE` thay vì status `ok`; không có khuyến nghị sai. Các câu từ chối đạt 6/6, câu khó đạt 13/13, câu thường đạt 4/5. Test unit/workflow không tính vào % benchmark AI.
+Kết quả và trace nằm ở `eval/run-1.csv`, `eval/run-2.csv`, `traces/run-1.jsonl` và `traces/run-2.jsonl`. B10 là câu duy nhất trượt ở lượt 1 (`ANALYSIS_UNAVAILABLE`). Lượt 2 đạt 24/24 câu theo tiêu chí từng câu. Tỉ lệ benchmark được tính trên 24 ca trong bộ thử.
 
 ## 6. Lỗi chính
 
-CP2 dùng mock nên kết quả 10/10 khi đó không đại diện cho chất lượng AI thật. CP3 đã chạy lượt 1 bằng GPT‑4o trên 24 tình huống; kết quả 23/24. B10 trả `ANALYSIS_UNAVAILABLE`, cần điều tra trước lượt 2. Đây là benchmark trên fixture synthetic, không chứng minh chất lượng trên review Shopee thật.
+Lượt 1 dùng `gpt-4o` qua OpenAI với `json_object` và đạt 23/24 (96%). Lượt 2 dùng `openai/gpt-4o-mini` qua OpenRouter với schema, validator và retry mới, đạt 24/24 (100%). B10 trả phân tích ở lượt 2. Vì hai lượt đổi cả model/nhà cung cấp và cách xử lý JSON, chưa xác định riêng tác động của mỗi thay đổi. B01 và B02 dùng cùng đầu vào nhưng trả hai khuyến nghị khác nhau ở lượt 2. Xem chi tiết trong `eval/report.md`.

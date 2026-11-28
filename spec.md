@@ -41,19 +41,19 @@ Data BTC cấp đã dùng: không.
 
 ## §4. Thiết kế *(guide 2.2, 3.2)*
 
-- **Lát cắt một câu:** Người mua dán link Shopee, chọn dòng máy và biến thể ốp; workflow lọc review local đúng biến thể, judge mock đánh dấu chiều hướng/độ cụ thể; người mua nhận khuyến nghị cùng review dẫn chứng để tự quyết định.
-- **Không làm:** không gọi Shopee/cào web; không đặt hàng hoặc nhắn người bán; không khẳng định review thật; không dùng review khác biến thể; CP2 không phân tích ảnh/video/audio.
+- **Lát cắt một câu:** Người mua dán link Shopee, chọn dòng máy và biến thể ốp; workflow lọc review cục bộ đúng biến thể, model AI đa phương thức chấm chiều hướng/độ cụ thể kèm ảnh và frame tĩnh được chọn; người mua nhận khuyến nghị cùng review dẫn chứng để tự quyết định.
+- **Không làm:** không gọi Shopee/cào web trong lúc phân tích demo; không đặt hàng hoặc nhắn người bán; không khẳng định review thật; không dùng review khác biến thể; không phân tích chuyển động video hay âm thanh.
 - **Sơ đồ workflow cố định:**
 
 ```mermaid
 flowchart LR
     A[Nhập JSON: link + dòng máy + biến thể] --> B{Input hợp lệ?}
     B -- Không --> C[Báo lỗi / hỏi chọn lại]
-    B -- Có --> D[Lookup listing trong fixture local]
+    B -- Có --> D[Lookup listing cục bộ: collector export hoặc fixture]
     D --> E[Lọc exact dòng máy + biến thể]
     E --> F[Lấy mẫu theo nhóm sao, seed 42]
-    F --> G[Judge mock: sentiment + độ cụ thể]
-    G --> H[Kiểm schema / mã review bằng code]
+    F --> G[Model AI đa phương thức: sentiment + độ mạnh + media]
+    G --> H[Kiểm json_schema / mã review + retry 1 lần nếu lỗi JSON]
     H --> I[Tổng hợp: tỷ trọng sao × độ mạnh × lượt Hữu ích]
     I --> J[Khuyến nghị + độ phủ + dẫn chứng]
 ```
@@ -63,24 +63,24 @@ flowchart LR
 
   | Công cụ | Input | Output | Tác động |
   |---|---|---|---|
-  | `get_product_reviews` | URL, dòng máy, biến thể, giới hạn, seed | Metadata và review exact-match từ `data/reviews.json`, số lượng/phân bố sao | Không; chỉ đọc file local |
-  | `call_model` | JSON chứa review đã lọc | JSON nhãn chiều hướng, độ mạnh, lý do | CP2 mock heuristic, không gọi API |
-  | `agent.answer` | Input JSON và kết quả công cụ/judge | JSON output có khuyến nghị, coverage, review IDs | Không |
+  | `get_product_reviews` | URL, dòng máy, biến thể, giới hạn, seed | Metadata và review exact-match từ `collector` export mới nhất hoặc `data/reviews.json`, số lượng/phân bố sao | Không; chỉ đọc file local |
+  | `call_model` | JSON chứa review đã lọc + ảnh/frame tĩnh gắn mã review | JSON (`json_schema` strict) nhãn chiều hướng, độ mạnh, lý do, `media_assessment` | Gọi API OpenAI/OpenRouter (hoặc `fake` khi test offline) |
+  | `agent.answer` | Input JSON và kết quả công cụ/model | JSON output có khuyến nghị, coverage, review IDs | Không |
 
 - **Tín hiệu “Hữu ích” sau CP2:** nếu review có `helpful_count`, dùng trực tiếp số lượt người mua đánh dấu review hữu ích; đây là metadata nguồn, không phải model suy đoán. Hệ số `1 + min(log1p(n)/log1p(10), 1)` (0 lượt = 1.0; ≥10 lượt = 2.0). Review thiếu trường dùng 1.0; không tự điền. Trọng số cuối = `star_population_weight × evidence_strength_weight × helpfulness_factor`. Hệ số bị chặn ở 2.0 để phiếu hữu ích không lấn át hoàn toàn phân bố sao/bằng chứng. Giá trị `helpful_count` trong fixture chỉ synthetic; chưa xác nhận tích hợp thu thập dữ liệu Shopee.
-- **Mức tự động:** mock gợi ý; người mua tự quyết định. Nếu link không có fixture, biến thể không khớp, hoặc dữ liệu quá ít thì không khuyến nghị mua.
-- **Chặn rủi ro:** hostname HTTPS allowlist và exact local URL; schema input chặt; exact match metadata; giới hạn 12 review; validate mã/nhãn judge; không thực thi chỉ dẫn trong review.
+- **Mức tự động:** AI gợi ý; người mua tự quyết định. Nếu link không có dữ liệu cục bộ, biến thể không khớp, hoặc dữ liệu quá ít (<3 review) thì không khuyến nghị mua (trả `Cần xem xét thêm` hoặc lỗi có cấu trúc).
+- **Chặn rủi ro:** hostname HTTPS allowlist và exact local URL; schema input chặt; exact match metadata; giới hạn tối đa 100 review/lượt; validate mã/nhãn và `json_schema` strict (retry 1 lần nếu JSON lỗi); không thực thi chỉ dẫn trong review.
 - **Người duyệt:** người mua tự quyết; không có thao tác mua hàng.
 - **Nguyên tắc:**
 
   | Nguyên tắc | Chỗ cụ thể |
   |---|---|
-  | G10 — thu hẹp khi không chắc | Link ngoài fixture báo chưa có dữ liệu; biến thể sai thì hỏi chọn lại; <3 review khớp chỉ trả “Cần xem xét thêm”. |
-  | G1/G2 — nói rõ giới hạn | Hiển thị tổng review khớp, số đã lấy mẫu, mock/AI thật, trạng thái media. |
+  | G10 — thu hẹp khi không chắc | Link ngoài bộ dữ liệu báo `NO_LOCAL_DEMO_DATA`; biến thể sai báo `VARIANT_NOT_FOUND`; <3 review khớp chỉ trả “Cần xem xét thêm”. |
+  | G1/G2 — nói rõ giới hạn | Hiển thị tổng review khớp, số đã lấy mẫu, `analysis_mode`, `source_label`, `media_note` (nêu rõ frame tĩnh không phản ánh chuyển động/âm thanh). |
   | G11 — giải thích vì sao | Dẫn mã review, sao, trích nguyên văn và lý do độ mạnh. |
   | G8/G9 — giữ người quyết định | Chỉ tư vấn, không đặt hàng hoặc thay đổi tài khoản. |
 
-- **Phần giả:** toàn bộ fixture review tự viết là `synthetic`; CP2 judge là rule-based mock, model `fake`, token 0; không có media. Không xem mock là kết quả AI thật hay review thực tế.
+- **Phần giả:** bộ fixture mặc định (`data/reviews.json`, 14 review + 2 ảnh/frame synthetic) là `synthetic` (không dùng làm bằng chứng pain). Khi đặt `MODEL_PROVIDER=fake` để chạy unit test offline thì dùng heuristic mock (token 0); ở CP3/CP4 bản chạy thật dùng model thật (`gpt-4o` / `openai/gpt-4o-mini`).
 
 ## §5. Chỗ khó — 4 lớp, kịch bản và tấn công *(guide 2.3)*
 
@@ -104,17 +104,22 @@ flowchart LR
 - Ngoài phạm vi/tấn công: trường instruction thêm hoặc host giả → từ chối.
 - Đặc thù: review có phản ánh tiêu cực cụ thể không bị điểm sao trung bình che mất; thiếu media phải hiện rõ.
 
-## §7. Đánh giá & chuẩn “đạt” *(guide 2.4)*
+## §7. Đánh giá & chuẩn “đạt” *(guide 2.4, 4.1)*
 
-- Data Card: `data/DATA_CARD.md`; benchmark: `eval/benchmark.csv` — 10 câu (2 `thuong`, 6 `kho`, 2 `tu_choi`; 2 tấn công); 4/10 câu thử có tình huống được người khảo sát ghi nhận, nhưng nội dung fixture/output vẫn synthetic.
-- Metric: 3 metric ở `eval/metric_spec.yaml`; chấm code trên input/output và dữ liệu fixture. Minh và Quang đã chấm độc lập 5 output đại diện, đồng thuận 5/5 (cả 5 đạt); Quang kiểm tra chéo 10/10 benchmark đạt. Chi tiết ở `eval/README.md`.
+- Data Card: `data/DATA_CARD.md`; benchmark mở rộng CP3/CP4: `eval/benchmark.csv` — **24 câu** (`thuong` 5, `kho` 13, `tu_choi` 6; gồm 6 câu tấn công; 10/24 câu định hướng từ phản hồi khảo sát, nội dung fixture vẫn synthetic).
+- Metric: 3 metric ở `eval/metric_spec.yaml` (giữ nguyên sau CP2); chấm code trên input/output và dữ liệu fixture. Minh và Quang đã chấm độc lập 5 output đại diện CP2, đồng thuận 5/5. Chi tiết ở `eval/README.md` và `eval/report.md`.
 - **Chuẩn đạt CP2 đã khóa:** “Đạt khi ít nhất 8/10 câu benchmark đạt; đồng thời 100% input không hợp lệ/không có fixture/không đúng biến thể không tạo khuyến nghị, và 100% dẫn chứng trỏ đúng review + listing + dòng máy + biến thể.” Câu tấn công thuộc tập bắt buộc không được thực thi; lỗi này làm không đạt dù tổng điểm ≥8/10.
-- **Chính sách gợi ý trong bản demo:** cần ≥3 review exact-match; điểm có trọng số ≥0,25 → “Đáng mua”, ≤−0,25 → “Không đáng mua”, còn lại → “Cần xem xét thêm”. Đây là ngưỡng heuristic cần kiểm lại bằng model thật/lượt CP3; không phải ngưỡng đã được khảo sát người dùng chọn.
-- Lượt eval AI thật: chưa chạy ở CP2; mock không tính là chất lượng AI thật. Chấm độc lập đã hoàn tất: Minh và Quang đồng thuận 5/5 output đại diện; kết quả benchmark mock 10/10 đạt được ghi ở `eval/README.md`.
+- **Chính sách gợi ý trong bản demo:** cần ≥3 review exact-match; điểm có trọng số ≥0,25 → “Đáng mua”, ≤−0,25 → “Không đáng mua”, còn lại → “Cần xem xét thêm”.
+- **Kết quả AI thật:**
+  - **Lượt 1 (CP3):** `23/24 (96%)` — `thuong` 4/5, `kho` 13/13, `tu_choi` 6/6 (`run-1@20261128-094539`, `gpt-4o`). Lỗi duy nhất: `B10` (`ANALYSIS_UNAVAILABLE`).
+  - **Lượt 2 (CP4):** `24/24 (100%)` — `thuong` 5/5, `kho` 13/13, `tu_choi` 6/6 (`run-2@20261128-104603`, `openai/gpt-4o-mini` qua OpenRouter sau khi bật `json_schema` strict, chuẩn hóa validator và retry 1 lần).
 
 ## §8. Chi phí khi dùng thật *(guide 4.2)*
 
-- Hoàn thiện ở CP3/CP4 sau khi chọn model thật và persona có nguồn; hiện chưa có credential/model hoặc cost estimate.
+- Persona và giá ở `cost/personas.yaml`. Ba persona dựa trên Q3 của 42 phản hồi hợp lệ. Quy mô 30 / 100 / 300 người dùng là *tự ước tính*. Lượt `simulate-1@20261128-104717` dùng seed `42`, chạy **50 phiên**, gồm 35 phiên gọi model và 15 phiên không gọi model. Tỉ lệ đạt đưa vào công thức là **24/24 câu** từ `eval/run-2.csv`.
+- Bình quân trên cả 50 phiên (đo token bằng `openai/gpt-4o-mini`): **`$0.00084`** theo giá GPT-4o-mini, **`$0.0140`** theo giá GPT-4o và **`$0.0015`** theo giá Gemini 3.1 Flash-Lite. Mẫu số gồm mọi phiên mô phỏng. Ước tính mỗi task đạt tiêu chí của khung chia các mức bình quân cho tỉ lệ đạt benchmark theo câu, kể cả từ chối đúng. Với 35 phiên có gọi GPT-4o-mini, chi phí bình quân là **`$0.00120`/phiên**.
+- Chi phí / tháng ở quy mô thật (`openai/gpt-4o-mini`): thấp (30 người) **`$0.0822`** · cơ sở (100 người) **`$0.2740`** (`$0.0027`/người/tháng) · cao (300 người) **`$0.8221`**. Chi tiết tại `cost/cost-estimate.md`.
+- So với impact (§2): trung vị thời lượng đọc review người trả lời tự báo cáo là **5 đến dưới 10 phút**. Chi phí API dự kiến cho phép thử ở quy mô nhỏ. Cần đo thời gian thực sự tiết kiệm được khi người mua dùng app với review thật.
 
 ## §9. Rủi ro & an toàn
 
@@ -130,4 +135,6 @@ flowchart LR
 | Thời điểm | Đổi gì | Vì sao |
 |---|---|---|
 | CP2 | Cập nhật bằng chứng khảo sát đã merge; tách khảo sát đa ngành khỏi demo ốp; chốt workflow, benchmark, metric và chuẩn đạt | PR #3, `results.csv`, giới hạn mẫu và scope `PLAN.md` |
-| Sau CP2 · 27/11/2026 | Thêm số lượt “Hữu ích” làm hệ số bounded trong tổng hợp; không đổi metric spec hoặc chuẩn đạt CP2 | Yêu cầu bổ sung tín hiệu hữu ích thu thập được cùng review; xem `docs/superpowers/specs/2026-11-27-helpful-vote-weighting-design.md` |
+| Sau CP2 · 27/11/2026 | Thêm số lượt “Hữu ích” làm hệ số bounded trong tổng hợp; không đổi metric spec hoặc chuẩn đạt CP2 | Yêu cầu bổ sung tín hiệu hữu ích thu thập được cùng review |
+| CP3 · 28/11/2026 | Nối model thật (`gpt-4o`), tích hợp web UI (`codebase/app.py`), `Shopee_Collector`, mở rộng benchmark 24 câu và chạy lượt 1 (`23/24`, lỗi `B10`) | PR #7–#11; đáp ứng yêu cầu model thật đa phương thức và benchmark ≥20 câu |
+| CP4 · 28/11/2026 | Hỗ trợ OpenRouter, dùng `json_schema` strict, chuẩn hóa validator và thử lại một lần. Chạy lượt 2 (`24/24`, `openai/gpt-4o-mini`) và mô phỏng chi phí 50 phiên (`simulate-1`) | B10 trả được phân tích ở lượt 2. Lượt này đổi cả model và cách xử lý JSON. Chi tiết ở `eval/report.md` và `cost/cost-estimate.md`. |
