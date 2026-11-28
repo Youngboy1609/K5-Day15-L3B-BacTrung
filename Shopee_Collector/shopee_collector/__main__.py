@@ -67,6 +67,7 @@ def main():
             from .browser import Collector
             cfg = load_config(args.config)
             cfg["all_review_pages"] = args.all_reviews
+            cfg["sample_reviews"] = not args.all_reviews
             try:
                 asyncio.run(Collector(store, cfg, rules).start(
                     auto=args.auto, remember=args.remember_session, cdp=args.cdp, refresh=args.refresh))

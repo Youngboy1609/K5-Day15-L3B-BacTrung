@@ -52,6 +52,11 @@
     const buttons = all(pager, "button");
     const labels = buttons.filter(b => text(b));
     const reviewFilter = reviewWidget?.querySelector(".product-rating-overview__filter--active");
+    const starCounts = {};
+    for (const filter of all(reviewWidget, ".product-rating-overview__filter")) {
+        const match = text(filter).match(/^([1-5])\s*(?:sao|stars?)\s*\(\s*(\d+|\d{1,3}(?:[., ]\d{3})+)\s*\)$/i);
+        if (match) starCounts[match[1]] = Number(match[2].replace(/[., ]/g, ""));
+    }
     const reviews = all(reviewWidget, "[data-cmtid]").map(row => {
         const media = row.querySelector(".rating-media-list");
         const pictures = all(media, ".rating-media-list__image-wrapper").filter(
@@ -59,7 +64,8 @@
         const time = text(row.querySelector(".shopee-product-rating__time,.XYk98l")).split("|")[0].trim();
         const like = text(row.querySelector(".shopee-product-rating__like-count,[data-testid='review-like-count']"));
         const dislike = text(row.querySelector("[data-testid='review-dislike-count']"));
-        return {id: row.dataset.cmtid, time, like, dislike,
+        const stars = all(row, ".shopee-product-rating__rating .icon-rating-solid").length;
+        return {id: row.dataset.cmtid, rating: stars >= 1 && stars <= 5 ? stars : null, time, like, dislike,
             phone_model: row.dataset.phoneModel || null,
             case_variant: row.dataset.caseVariant || null,
             reply: text(row.querySelector(".shopee-product-rating__reply-content,[data-testid='seller-reply-content']")),
@@ -72,7 +78,7 @@
         description_section_seen: Boolean(description), description_images: all(description, "img").map(img),
         gallery_images: images, cover: ogImage, videos: videos(gallery),
         price_text: text(priceBox), rating: rating?.[1], rating_count_display: rating?.[2],
-        sold_display: sold?.[0], reviews, review_page: pageNumber(active), review_filter: fold(text(reviewFilter)),
+        sold_display: sold?.[0], reviews, star_counts: starCounts, review_page: pageNumber(active), review_filter: fold(text(reviewFilter)),
         last_number_displayed: labels.length > 1 && labels[labels.length - 1] === active,
         page_buttons: buttons.filter(b => !b.disabled && b.getAttribute("aria-disabled") !== "true").map(pageNumber).filter(Boolean)};
 }

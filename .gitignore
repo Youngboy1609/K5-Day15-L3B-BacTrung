@@ -37,7 +37,7 @@ data-btc
 data-btc/
 
 # Shopee Collector — profile đăng nhập, cấu hình riêng và dữ liệu thu thập
-/Shopee_Collector/chrome_profile*/
+/Shopee_Collector/**/chrome_profile*/
 /Shopee_Collector/browser-profile*/
 /Shopee_Collector/output/
 /Shopee_Collector/output_media/
