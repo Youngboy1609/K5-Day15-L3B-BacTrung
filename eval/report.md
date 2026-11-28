@@ -26,8 +26,9 @@ Kết quả từng câu: `eval/run-1.csv`, `eval/run-2.csv`. Trace: `traces/run-
 | B10 | Samsung Galaxy S24, ốp chống sốc viền nhám | `ANALYSIS_UNAVAILABLE` sau khi model trả phản hồi | Người mua nhập đúng biến thể nhưng không nhận được phân tích. Trace chỉ lưu trích đoạn phản hồi, nên chưa xác định được trường khiến bộ kiểm tra từ chối. |
 | B01–B03, B15, B16, B18 *(đạt tiêu chí từng câu)* | Cùng một đầu vào iPhone 15 Pro, ốp trong suốt viền đen | Điểm có trọng số dao động từ `0,032` đến `0,237` trên cùng 8 review | Cả sáu lần đều trả “Cần xem xét thêm”. Điểm cao nhất chỉ cách ngưỡng “Đáng mua” `0,013`. |
 | B04 *(đạt tiêu chí từng câu)* | Samsung Galaxy S24, ốp chống sốc viền nhám | Lý do đánh giá viết bằng tiếng Anh | Giao diện dùng tiếng Việt. Người mua phải đọc phần giải thích bằng ngôn ngữ khác trước khi tự quyết. |
+| 11 câu `status=ok` *(đạt tiêu chí từng câu)* | Cả hai listing và nhiều biến thể | Cùng một lời khuyên đọc thêm review và kiểm tra đổi trả | Lời khuyên chưa chỉ ra nên kiểm tra chi tiết nào theo dẫn chứng của từng ca. |
 
-Lượt 1 trượt một câu (`B10`). Hai dòng tiếp theo ghi nhận vấn đề chất lượng quan sát được ở các câu đã đạt. B04 và B17 dùng cùng đầu vào với B10 và đều trả `status=ok` ở lượt 1.
+Lượt 1 trượt một câu (`B10`). Ba dòng tiếp theo ghi nhận vấn đề chất lượng quan sát được ở các câu đã đạt. B04 và B17 dùng cùng đầu vào với B10 và đều trả `status=ok` ở lượt 1.
 
 ## 3. Một lần cải tiến
 
@@ -43,3 +44,7 @@ Lượt 1 trượt một câu (`B10`). Hai dòng tiếp theo ghi nhận vấn đ
 
 - Khuyến nghị còn dao động giữa các lần gọi cùng đầu vào. Bộ câu thử dùng 14 review `synthetic` và một khung hình tĩnh (`R004`). Lý do đánh giá còn xuất hiện bằng tiếng Anh, và nhóm chưa đo chất lượng trên review Shopee thật.
 - Nếu có thêm một tuần: (1) Giữ nguyên model/nhà cung cấp và lặp các ca trùng đầu vào để đo độ ổn định của parser và khuyến nghị. (2) Đánh giá trên ít nhất 50 review ốp đã làm sạch. (3) Thử với 3–5 người ngoài nhóm, đo thời gian thực hiện và kiểm cách họ hiểu lý do đánh giá.
+
+## 5. Lượt đối chứng GPT‑4o
+
+Một lượt đối chứng riêng giữ nguyên model và nhà cung cấp của lượt 1, đạt **24/24** trên cùng bộ câu thử. B10 đạt ở lần gọi đầu; kết quả không chứng minh cơ chế gọi lại đã làm tăng điểm. Xem [hồ sơ đối chứng](../evidence/cp4-gpt-4o/README.md).
