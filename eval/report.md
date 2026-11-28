@@ -8,7 +8,7 @@
 
 | Lượt | Run ID | Đạt / tổng | % | thuong | kho | tu_choi | So với chuẩn "đạt" |
 |---|---|---|---|---|---|---|---|
-| 1 | | __/__ | | __/__ | __/__ | __/__ | đạt / chưa |
+| 1 | `run-1@20261128-094539` | 23/24 | 96% | 4/5 | 13/13 | 6/6 | đạt |
 | 2 | | __/__ | | __/__ | __/__ | __/__ | đạt / chưa |
 
 Kết quả từng câu: `eval/run-1.csv`, `eval/run-2.csv`. Trace: `traces/run-1.jsonl`, `traces/run-2.jsonl`.
@@ -17,17 +17,15 @@ Kết quả từng câu: `eval/run-1.csv`, `eval/run-2.csv`. Trace: `traces/run-
 
 | Nhóm lỗi | Số câu | Câu |
 |---|---|---|
-| vd: bịa nguồn *(ví dụ)* | | |
-| vd: đoán khi thiếu thông tin *(ví dụ)* | | |
-| | | |
+| Output an toàn nhưng không hoàn thành phân tích | 1 | B10 |
 
 **≥3 lỗi cụ thể:**
 
 | Câu | Input | Output | Vì sao sai |
 |---|---|---|---|
-| | | | |
-| | | | |
-| | | | |
+| B10 | Listing Samsung Galaxy S24, biến thể ốp chống sốc | `status=error`, `code=ANALYSIS_UNAVAILABLE` | Không trả được phân tích `status=ok` như tiêu chí; không có khuyến nghị sai. |
+
+Lượt này có một câu không đạt; chưa đủ ba lỗi khác nhau để phân nhóm sâu hơn. Trace đầy đủ ở `traces/run-1.jsonl`.
 
 ## 3. Một lần cải tiến
 

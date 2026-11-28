@@ -2,7 +2,7 @@
 
 ## 1. Dataset → xử lý
 
-`data/reviews.json`: 14 review synthetic, hai listing fixture; tra theo URL local + exact dòng máy/biến thể, lấy mẫu tối đa 12 theo nhóm sao (seed 42). Không phải review Shopee thật, không dùng làm pain evidence, không có media. Data Card ở `data/DATA_CARD.md`.
+`data/reviews.json`: 14 review synthetic, hai listing fixture; tra theo URL local + exact dòng máy/biến thể, giới hạn tối đa 100 review ở pipeline hiện tại. Không phải review Shopee thật và không dùng làm pain evidence. Fixture có ảnh synthetic và một frame tĩnh từ video synthetic; chi tiết ở `data/DATA_CARD.md`.
 
 Benchmark dùng 24 tình huống. Mười câu được định hướng bởi phản hồi khảo sát S008, S020, S033, S037, S040, S045, S053, S055. Listing, review và nội dung output vẫn dùng fixture synthetic. Nguồn khảo sát bao quát nhiều ngành hàng; chỉ S055 nhắc trực tiếp ốp, S008 thuộc ngành thời trang và chỉ dùng làm tình huống lệch phiên bản.
 
@@ -13,7 +13,7 @@ Benchmark dùng 24 tình huống. Mười câu được định hướng bởi p
 - Độ phủ: listing có/không (kể cả link dạng thật ngoài bộ demo); host, URL nội bộ, URL chứa credential; JSON/schema, thiếu trường; dòng máy; biến thể, khác hoa/thường; review thuận/nghịch, mâu thuẫn về độ vừa, phản ánh độ bền; không phán review thật/giả; review không có media; prompt injection trong trường ngoài schema, `case_variant` và `phone_model`.
 - Bốn lớp khó: lớp 1 B04/B05/B19 · lớp 2 B06/B09/B14/B20 · lớp 3 B07/B08/B21–B24 · lớp 4 B02/B03/B11/B12/B13/B17.
 - Trước lượt 1, B01 và B04 đổi tiêu chí từ "chế độ mock" / `media_note` của CP2 sang tiêu chí dùng được khi có model thật. Chưa có lượt nào chạy trên bộ cũ nên đây không phải sửa đáp án cho khớp output.
-- Chưa có câu thử ảnh/video vì `data/reviews.json` chưa có media. Khi bổ sung media, thêm B25–B30 (ca thấy lỗi đúng mẫu, ca video chỉ quay bao bì) trước khi chạy lượt 1.
+- Fixture CP3 có ảnh và một frame video synthetic; B01–B03/B15–B18 chạy trên listing có media, còn B04 kiểm tra listing không có media. Frame chỉ là ảnh tĩnh, không dùng để suy luận chuyển động hoặc âm thanh.
 
 ## 3. Metric và cách chấm
 
@@ -36,11 +36,11 @@ Benchmark dùng 24 tình huống. Mười câu được định hướng bởi p
 
 | Lượt | Run ID | Model | Cấu hình | Đạt / tổng | % | Đạt chuẩn? |
 |---|---|---|---|---|---|---|
-| 1 | Chưa chạy | — | Chờ model thật CP3 | — | — | — |
+| 1 | `run-1@20261128-094539` | `gpt-4o` (OpenAI) | Benchmark 24 câu; fixture local synthetic; gọi model thật | 23/24 | 96% | Đạt theo chuẩn khóa; xem lỗi B10 |
 | 2 | Chưa chạy | — | Chờ cải tiến CP3 | — | — | — |
 
-Test unit/workflow không phải lượt benchmark AI; kết quả test ghi ở log kiểm tra nội bộ, không ghi thành % chất lượng model.
+Kết quả và trace: `eval/run-1.csv`, `traces/run-1.jsonl`. B10 là câu duy nhất không đạt: output cuối `ANALYSIS_UNAVAILABLE` thay vì status `ok`; không có khuyến nghị sai. Các câu từ chối đạt 6/6, câu khó đạt 13/13, câu thường đạt 4/5. Test unit/workflow không tính vào % benchmark AI.
 
 ## 6. Lỗi chính
 
-CP2 dùng mock nên chưa có lượt đánh giá chất lượng bằng model AI thật; kết quả 10/10 là kiểm benchmark trên workflow mock, không đại diện cho chất lượng AI thật. Bộ câu đã mở rộng lên 24; lượt 1 chạy khi model thật (`openai/gpt-4o-mini` qua OpenRouter) được tích hợp vào `main`.
+CP2 dùng mock nên kết quả 10/10 khi đó không đại diện cho chất lượng AI thật. CP3 đã chạy lượt 1 bằng GPT‑4o trên 24 tình huống; kết quả 23/24. B10 trả `ANALYSIS_UNAVAILABLE`, cần điều tra trước lượt 2. Đây là benchmark trên fixture synthetic, không chứng minh chất lượng trên review Shopee thật.
